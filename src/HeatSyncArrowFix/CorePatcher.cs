@@ -15,7 +15,7 @@ namespace HeatSyncArrowFix
     {
         /// SHA-256 of the only supported original: GAMEPOWER.exe 2.2.1.0 (11.03.2025)
         /// Increase when the set of fixes changes; the launcher re-patches older copies from its backup.
-        public const int PatchVersion = 2;
+        public const int PatchVersion = 3;
 
         public const string SupportedSha256 = "994498FE073B038E34D1318E577042B079823412BBCF5C2AC810E0CD03185E12";
 
@@ -55,12 +55,13 @@ namespace HeatSyncArrowFix
                 var cpuTemp = mgr.Methods.Single(m => m.Name == "⇝" && m.Parameters.Count == 1 && m.ReturnType.FullName == "System.Single");
                 var gpuTemp = mgr.Methods.Single(m => m.Name == "⇶" && m.Parameters.Count == 1 && m.ReturnType.FullName == "System.Single");
                 var cpuLoad = mgr.Methods.Single(m => m.Name == "⇢" && m.Parameters.Count == 1 && m.ReturnType.FullName == "System.Single");
+                var gpuLoad = mgr.Methods.Single(m => m.Name == "⇻" && m.Parameters.Count == 1 && m.ReturnType.FullName == "System.Single");
                 var counter = loopType.Fields.Single(f => f.Name == "℁" && f.FieldType.FullName == "System.Int32");
                 var pkt = loopType.Fields.Single(f => f.Name == "ℋ" && f.FieldType.FullName == "System.Byte[]");
                 var owner = loopType.Fields.Single(f => f.Name == "⃷");
                 var lcdField = x.Fields.Single(f => f.Name == "ℐ" && f.FieldType.FullName == mgr.FullName);
                 var arrowLevel = new MemberRefUser(mod, "ArrowLevel",
-                    MethodSig.CreateStatic(mod.CorLibTypes.Int32, mod.CorLibTypes.Int32, mod.CorLibTypes.Single),
+                    MethodSig.CreateStatic(mod.CorLibTypes.Int32, mod.CorLibTypes.Int32, mod.CorLibTypes.Single, mod.CorLibTypes.Single),
                     new TypeRefUser(mod, "HeatSyncFix", "Lcd", fixAsm));
 
                 var b = mn.Body; b.SimplifyBranches();
@@ -80,7 +81,9 @@ namespace HeatSyncArrowFix
                         ins[i + 3].OpCode = OpCodes.Ldarg_0; ins[i + 3].Operand = null;
                         var add = new[] {
                             OpCodes.Ldfld.ToInstruction(owner), OpCodes.Ldfld.ToInstruction(lcdField),
-                            OpCodes.Callvirt.ToInstruction(side == 0 ? cpuTemp : gpuTemp), OpCodes.Call.ToInstruction(arrowLevel) };
+                            OpCodes.Callvirt.ToInstruction(side == 0 ? cpuTemp : gpuTemp),
+                            OpCodes.Ldarg_0.ToInstruction(), OpCodes.Ldfld.ToInstruction(owner), OpCodes.Ldfld.ToInstruction(lcdField),
+                            OpCodes.Callvirt.ToInstruction(side == 0 ? cpuLoad : gpuLoad), OpCodes.Call.ToInstruction(arrowLevel) };
                         for (int k = 0; k < add.Length; k++) ins.Insert(i + 4 + k, add[k]);
                         replaced++; idx169 += add.Length;
                     }
@@ -95,7 +98,7 @@ namespace HeatSyncArrowFix
                 }
                 if (hdr != 2) throw new InvalidDataException("CPU-load header arguments not found (" + hdr + ").");
                 b.OptimizeBranches();
-                log.Add("arrows: bytes[10]/[11] -> HeatSyncFix.Lcd.ArrowLevel(CPU/GPU temp), header CPU load -> CPU temp");
+                log.Add("arrows: bytes[10]/[11] -> HeatSyncFix.Lcd.ArrowLevel(side, temp, load), header CPU load -> CPU temp");
             }
 
             // 2) HWiNFO "#216 update device" P/Invoke -> HeatSyncFix.Sensors.SafeUpdate (AccessViolation in nvml.dll)

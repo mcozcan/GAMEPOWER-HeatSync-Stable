@@ -18,12 +18,18 @@ namespace HeatSyncFix
 {
     public static class Lcd
     {
-        // Linear 0..100 °C scale (the same 0-100 °C -> 0-100 % convention the original software
-        // uses for its temperature bars), split into the 8 values (0..7) the firmware accepts.
+        // Arrow source (HeatSync-ArrowFix.ini: ArrowSource=Temp|Load)
+        //  Temp : linear ArrowMinC..ArrowMaxC (default 0..100 °C), 8 steps, HysteresisC (1 °C)
+        //  Load : CPU/GPU usage 0..100 %, averaged over LoadSmoothingSec (3 s), LoadHysteresis (3 %)
+        public static bool UseLoad = false;
         public static float MinC = 0f, MaxC = 100f;
+        public static float HysteresisC = 1f;
+        public static float LoadSmoothingSec = 3f;
+        public static float LoadHysteresis = 3f;
         public const int Levels = 8;
-        public static float HysteresisC = 1f;      // avoids flicker when a sensor toggles at a step boundary
         static readonly int[] last = { -1, -1 };
+        static readonly double[] avg = { double.NaN, double.NaN };
+        static readonly DateTime[] avgTime = new DateTime[2];
         static readonly object lk = new object();
 
         static Lcd()
@@ -38,62 +44,96 @@ namespace HeatSyncFix
                     var line = raw.Trim();
                     if (line.StartsWith(";") || line.StartsWith("#") || !line.Contains("=")) continue;
                     var k = line.Substring(0, line.IndexOf('=')).Trim().ToLowerInvariant();
-                    var v = line.Substring(line.IndexOf('=') + 1).Trim().Replace(',', '.');
+                    var v = line.Substring(line.IndexOf('=') + 1).Trim();
+                    if (k == "arrowsource") { UseLoad = v.Trim().ToLowerInvariant().StartsWith("load"); continue; }
                     float f;
-                    if (!float.TryParse(v, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out f)) continue;
+                    if (!float.TryParse(v.Replace(',', '.'), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out f)) continue;
                     if (k == "arrowminc") MinC = f;
                     else if (k == "arrowmaxc") MaxC = f;
                     else if (k == "hysteresisc") HysteresisC = Math.Max(0f, f);
+                    else if (k == "loadsmoothingsec") LoadSmoothingSec = Math.Max(0f, f);
+                    else if (k == "loadhysteresis") LoadHysteresis = Math.Max(0f, f);
                 }
                 if (MaxC <= MinC) { MinC = 0f; MaxC = 100f; }
             }
             catch { MinC = 0f; MaxC = 100f; }
         }
 
-        static float StepC { get { return (MaxC - MinC) / Levels; } }
+        public static string Describe() { return UseLoad ? "load 0..100 %, avg " + LoadSmoothingSec + " s, hyst " + LoadHysteresis + " %" : "temp " + MinC + ".." + MaxC + " C, hyst " + HysteresisC + " C"; }
 
-        public static int RawLevel(float tempC)
+        static int Raw(float v, float min, float max)
         {
-            if (float.IsNaN(tempC) || float.IsInfinity(tempC)) return 0;
-            int lv = (int)Math.Floor((tempC - MinC) / StepC);
-            if (lv < 0) lv = 0;
-            if (lv > Levels - 1) lv = Levels - 1;
-            return lv;
+            if (float.IsNaN(v) || float.IsInfinity(v)) return 0;
+            int lv = (int)Math.Floor((v - min) / ((max - min) / Levels));
+            return lv < 0 ? 0 : lv > Levels - 1 ? Levels - 1 : lv;
         }
+        public static int RawLevel(float tempC) { return Raw(tempC, MinC, MaxC); }
 
-        // --lcd-test: show values 0..7 one after another (each for TestSecondsPerLevel s) on both sides,
-        // so the user can see what each value looks like on the device. Same value range the original sent.
+        // --lcd-test: show values 0..7 one after another (each for TestSecondsPerLevel s) on both sides.
         public static int TestSecondsPerLevel = 0;
         static DateTime testStart;
         static int lastTestLevel = -1;
         public static void StartTest(int secondsPerLevel) { testStart = DateTime.Now; TestSecondsPerLevel = secondsPerLevel; }
 
-        /// <param name="side">0 = CPU (packet byte 10), 1 = GPU (packet byte 11)</param>
-        public static int ArrowLevel(int side, float tempC)
+        static int Stable(int side, float v, float min, float max, float hyst)
         {
-            if (TestSecondsPerLevel > 0)
-            {
-                int t = (int)((DateTime.Now - testStart).TotalSeconds / TestSecondsPerLevel) % Levels;
-                if (t != lastTestLevel) { lastTestLevel = t; AppLog.Write("LCD TEST: arrow value now " + t); }
-                return t;
-            }
-            int raw = RawLevel(tempC);
+            int raw = Raw(v, min, max);
             if (side < 0 || side > 1) return raw;
             lock (lk)
             {
                 int prev = last[side];
                 if (prev < 0 || raw == prev) { last[side] = raw; return raw; }
-                float lower = MinC + prev * StepC, upper = MinC + (prev + 1) * StepC;
-                bool farEnough = (raw > prev && tempC >= upper + HysteresisC) || (raw < prev && tempC < lower - HysteresisC)
-                                 || Math.Abs(raw - prev) > 1;
+                float step = (max - min) / Levels, lower = min + prev * step, upper = min + (prev + 1) * step;
+                bool farEnough = (raw > prev && v >= upper + hyst) || (raw < prev && v < lower - hyst) || Math.Abs(raw - prev) > 1;
                 if (farEnough) last[side] = raw;
                 return last[side];
             }
         }
 
-        public static void Reset() { lock (lk) { last[0] = -1; last[1] = -1; } }
-    }
+        // exponential moving average with time constant LoadSmoothingSec
+        static float Smooth(int side, float v)
+        {
+            if (side < 0 || side > 1 || float.IsNaN(v)) return v;
+            lock (lk)
+            {
+                var now = DateTime.Now;
+                if (double.IsNaN(avg[side]) || LoadSmoothingSec <= 0) { avg[side] = v; avgTime[side] = now; return v; }
+                double dt = Math.Max(0, (now - avgTime[side]).TotalSeconds); avgTime[side] = now;
+                double a = 1 - Math.Exp(-dt / LoadSmoothingSec);
+                avg[side] += a * (v - avg[side]);
+                return (float)avg[side];
+            }
+        }
 
+        static bool Test(out int t)
+        {
+            t = 0;
+            if (TestSecondsPerLevel <= 0) return false;
+            t = (int)((DateTime.Now - testStart).TotalSeconds / TestSecondsPerLevel) % Levels;
+            if (t != lastTestLevel) { lastTestLevel = t; AppLog.Write("LCD TEST: arrow value now " + t); }
+            return true;
+        }
+
+        /// patch v2 call: temperature only (kept for older patched copies)
+        public static int ArrowLevel(int side, float tempC)
+        {
+            int t; if (Test(out t)) return t;
+            return Stable(side, tempC, MinC, MaxC, HysteresisC);
+        }
+
+        /// patch v3 call. side: 0 = CPU (packet byte 10), 1 = GPU (packet byte 11)
+        public static int ArrowLevel(int side, float tempC, float loadPct)
+        {
+            int t; if (Test(out t)) return t;
+            if (UseLoad) return Stable(side, Smooth(side, loadPct), 0f, 100f, LoadHysteresis);
+            return Stable(side, tempC, MinC, MaxC, HysteresisC);
+        }
+
+        public static void Reset() { lock (lk) { last[0] = -1; last[1] = -1; avg[0] = double.NaN; avg[1] = double.NaN; } }
+
+        /// switch arrow source at runtime (tray menu); takes effect with the next LCD packet
+        public static void SetSource(bool useLoad) { UseLoad = useLoad; Reset(); AppLog.Write("Arrow source -> " + Describe()); }
+    }
     // Guard for the HWiNFO SDK "update sensors of device N" export (#216 of msvcr120d.dll = HWiNFO64.dll).
     // On this PC it crashed the original program 3 times (Event Log: AccessViolationException in nvml.dll,
     // called from ⅌.⃲(Int32)). The patched EXE calls SafeUpdate instead of the raw P/Invoke.

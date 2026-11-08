@@ -71,16 +71,30 @@ Orijinal yazılımın açılış görevi (`UsbMonitor`) duruyorsa onu **Devre d�
 - İndirdiğiniz ZIP'in SHA-256 değerini [Releases](../../releases/latest) sayfasındaki değerle karşılaştırabilirsiniz (`Get-FileHash dosya.zip`).
 - Yanlış alarm görürseniz Microsoft'a bildirebilirsiniz: <https://www.microsoft.com/wdsi/filesubmission>
 
+## Oklar: sıcaklık mı, kullanım yüzdesi mi?
+
+Saatin yanındaki **HeatSync-ArrowFix** simgesine sağ tıklayın:
+
+- **Sıcaklığa göre (CPU / GPU °C)**: varsayılan. Oklar 0–100 °C ölçeğinde, yalnızca sıcaklık değişince hareket eder.
+- **Kullanım yüzdesine göre (CPU / GPU %)**: oklar işlemci/ekran kartı yüküne göre dolar. Yük her saniye değiştiği için son ~3 saniyenin ortalaması alınır; oklar her saniye zıplamaz.
+
+Seçim anında uygulanır ve `HeatSync-ArrowFix.ini` dosyasına kaydedilir. Sol ok her zaman CPU, sağ ok GPU içindir.
+
 ## Ayarlar
 
 `HeatSync-ArrowFix.ini`:
 
 ```ini
+; Oklar neye göre: Temp (sıcaklık) | Load (kullanım %) - tepsi menüsünden de değişir
+ArrowSource=Temp
 ; Okların sıcaklık ölçeği (varsayılan 0..100 °C, 8 kademe = 12,5 °C)
 ArrowMinC=0
 ArrowMaxC=100
 ; Kademe sınırında titremeyi önleyen pay (°C)
 HysteresisC=1
+; Kullanım modunda ortalama süresi (sn) ve titreme payı (yüzde puan)
+LoadSmoothingSec=3
+LoadHysteresis=3
 ```
 
 Okların daha belirgin hareket etmesi için ör. `ArrowMinC=30`, `ArrowMaxC=90` kullanabilirsiniz.

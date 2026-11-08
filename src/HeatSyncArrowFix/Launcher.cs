@@ -23,9 +23,9 @@ using System.Windows.Forms;
 [assembly: AssemblyDescription("Open-source launcher: runs a locally patched copy of the GAMEPOWER HeatSync LCD software. https://github.com/mcozcan/Gamepower-HeatSync-ArrowFix")]
 [assembly: AssemblyCompany("Mehmet Can Özcan (open source, MIT)")]
 [assembly: AssemblyCopyright("Copyright (c) 2026 Mehmet Can Özcan - MIT License")]
-[assembly: AssemblyVersion("1.0.1.0")]
-[assembly: AssemblyFileVersion("1.0.1.0")]
-[assembly: AssemblyInformationalVersion("1.0.1")]
+[assembly: AssemblyVersion("1.1.0.0")]
+[assembly: AssemblyFileVersion("1.1.0.0")]
+[assembly: AssemblyInformationalVersion("1.1.0")]
 
 namespace HeatSyncArrowFix
 {
@@ -101,6 +101,7 @@ namespace HeatSyncArrowFix
                 else Console.SetOut(TextWriter.Null);
 
                 new Thread(WatchOtherInstances) { IsBackground = true, Name = "instance-watch" }.Start();
+                CreateTray();
 
                 if (exitAfter > 0)
                     new Thread(() => { Thread.Sleep(exitAfter * 1000); Log("--exit-after reached"); Environment.Exit(0); }) { IsBackground = true }.Start();
@@ -126,6 +127,7 @@ namespace HeatSyncArrowFix
                 catch (TargetInvocationException tie) { Fatal(tie.InnerException ?? tie); return 4; }
                 catch (Exception ex) { Fatal(ex); return 4; }
                 Log("Core exited normally");
+                if (tray != null) { tray.Visible = false; tray.Dispose(); }
             }
             return 0;
         }
@@ -292,6 +294,68 @@ namespace HeatSyncArrowFix
         }
 
         static bool inDialog; static DateTime lastDialog = DateTime.MinValue;
+
+        // ---------------------------------------------------------------- own tray icon: arrow source choice
+        static NotifyIcon tray;
+        static ToolStripMenuItem miTemp, miLoad;
+
+        static void CreateTray()
+        {
+            try
+            {
+                var menu = new ContextMenuStrip();
+                var head = new ToolStripMenuItem("LCD okları neye göre hareket etsin?") { Enabled = false };
+                miTemp = new ToolStripMenuItem("Sıcaklığa göre (CPU / GPU °C)", null, (s, e) => SetArrowSource(false));
+                miLoad = new ToolStripMenuItem("Kullanım yüzdesine göre (CPU / GPU %)", null, (s, e) => SetArrowSource(true));
+                menu.Items.Add(head); menu.Items.Add(miTemp); menu.Items.Add(miLoad);
+                menu.Items.Add(new ToolStripSeparator());
+                menu.Items.Add("Kayıt klasörünü aç", null, (s, e) => { try { Process.Start("explorer.exe", "\"" + Path.Combine(dir, "logs") + "\""); } catch { } });
+                menu.Items.Add("GitHub sayfası", null, (s, e) => { try { Process.Start("https://github.com/mcozcan/Gamepower-HeatSync-ArrowFix"); } catch { } });
+                tray = new NotifyIcon
+                {
+                    Icon = System.Drawing.Icon.ExtractAssociatedIcon(Assembly.GetExecutingAssembly().Location),
+                    Text = "HeatSync-ArrowFix",
+                    ContextMenuStrip = menu,
+                    Visible = true
+                };
+                tray.MouseClick += (s, e) => { if (e.Button == MouseButtons.Left) { var mi = typeof(NotifyIcon).GetMethod("ShowContextMenu", BindingFlags.Instance | BindingFlags.NonPublic); if (mi != null) mi.Invoke(tray, null); } };
+                UpdateTrayChecks();
+                Application.ApplicationExit += (s, e) => { try { tray.Visible = false; tray.Dispose(); } catch { } };
+            }
+            catch (Exception ex) { Log("tray failed: " + ex.Message); }
+        }
+
+        static void UpdateTrayChecks()
+        {
+            miTemp.Checked = !HeatSyncFix.Lcd.UseLoad; miLoad.Checked = HeatSyncFix.Lcd.UseLoad;
+            tray.Text = "HeatSync-ArrowFix - oklar: " + (HeatSyncFix.Lcd.UseLoad ? "kullanım %" : "sıcaklık");
+        }
+
+        static void SetArrowSource(bool useLoad)
+        {
+            HeatSyncFix.Lcd.SetSource(useLoad);
+            UpdateTrayChecks();
+            SaveIniValue("ArrowSource", useLoad ? "Load" : "Temp");
+            tray.ShowBalloonTip(2500, "HeatSync-ArrowFix", "LCD okları artık " + (useLoad ? "kullanım yüzdesine" : "sıcaklığa") + " göre hareket ediyor.", ToolTipIcon.Info);
+        }
+
+        static void SaveIniValue(string key, string value)
+        {
+            try
+            {
+                string ini = Path.Combine(dir, "HeatSync-ArrowFix.ini");
+                var lines = File.Exists(ini) ? new List<string>(File.ReadAllLines(ini)) : new List<string>();
+                bool found = false;
+                for (int i = 0; i < lines.Count; i++)
+                {
+                    var l = lines[i].TrimStart();
+                    if (l.StartsWith(key + "=", StringComparison.OrdinalIgnoreCase) || l.StartsWith(key + " =", StringComparison.OrdinalIgnoreCase)) { lines[i] = key + "=" + value; found = true; }
+                }
+                if (!found) lines.Insert(0, key + "=" + value);
+                File.WriteAllLines(ini, lines.ToArray());
+            }
+            catch (Exception ex) { Log("ini save failed: " + ex.Message); }
+        }
 
         // A previously generated GAMEPOWER.exe in this folder (older HeatSync-ArrowFix layout) is removed so it cannot be started directly.
         static void RemoveOldCoreExe()

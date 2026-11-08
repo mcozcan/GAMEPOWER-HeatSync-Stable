@@ -37,6 +37,10 @@ KOMUTLAR
   HeatSync-ArrowFix.exe --lcd-test  oklari 0->7 kademelerinde 5'er sn gosterir
   HeatSync-ArrowFix.exe --setup     duzeltilmis kopyayi yeniden olusturur
 
+OKLAR: SICAKLIK MI, KULLANIM MI?
+  Saatin yanindaki HeatSync-ArrowFix simgesine sag tiklayin ve secin:
+  'Sicakliga gore' (varsayilan) veya 'Kullanim yuzdesine gore'. Aninda uygulanir.
+
 AYAR
   HeatSync-ArrowFix.ini : ArrowMinC / ArrowMaxC / HysteresisC
 

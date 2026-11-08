@@ -1,6 +1,6 @@
 # Builds HeatSync-ArrowFix and creates the release ZIP in .\artifacts
 # Requires: .NET SDK 6+ (builds .NET Framework 4.8 targets via reference-assembly packages)
-param([string]$Version = "1.0.1")
+param([string]$Version = "1.1.0")
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
 $pub = Join-Path $root "artifacts\HeatSync-ArrowFix"
