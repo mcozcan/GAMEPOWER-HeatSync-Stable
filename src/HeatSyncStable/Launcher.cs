@@ -136,6 +136,7 @@ namespace HeatSyncStable
         {
             string coreDll = Path.Combine(dir, CoreFile);
             if (!File.Exists(coreDll) || !CorePatcher.IsPatched(coreDll)) return false;
+            if (ReadPatchVersion() != CorePatcher.PatchVersion) return false;
             foreach (var f in CopiedFiles) if (!File.Exists(Path.Combine(dir, f))) return false;
             return File.Exists(Path.Combine(dir, "HeatSyncFix.dll")) && Directory.Exists(Path.Combine(dir, "config"));
         }
@@ -149,6 +150,7 @@ namespace HeatSyncStable
         static bool EnsureCore(bool force, bool auto)
         {
             if (!force && CoreReady()) return true;
+            if (!force && TryUpgradeFromBackup()) return true;
             if (!File.Exists(Path.Combine(dir, "HeatSyncFix.dll")) || !File.Exists(Path.Combine(dir, "dnlib.dll")))
             {
                 MessageBox.Show("HeatSyncFix.dll / dnlib.dll bulunamadı. İndirdiğiniz ZIP'in tamamını aynı klasöre çıkarın.\r\n\r\nKlasör: " + dir,
@@ -213,7 +215,8 @@ namespace HeatSyncStable
                 var steps = CorePatcher.Patch(Path.Combine(backup, "GAMEPOWER.exe"), Path.Combine(dir, CoreFile));
                 RemoveOldCoreExe();
                 foreach (var s in steps) Log("patch: " + s);
-                Log("Patched copy created");
+                WritePatchVersion();
+                Log("Patched copy created (patch version " + CorePatcher.PatchVersion + ")");
                 return true;
             }
             catch (Exception ex)
@@ -222,6 +225,28 @@ namespace HeatSyncStable
                 MessageBox.Show("Düzeltilmiş kopya oluşturulamadı:\r\n\r\n" + ex.Message + "\r\n\r\nAyrıntı: " + logPath, Title, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
+        }
+
+        static string PatchMarker { get { return Path.Combine(dir, "usb_hid.patch"); } }
+        static int ReadPatchVersion() { try { return int.Parse(File.ReadAllText(PatchMarker).Trim()); } catch { return 1; } }
+        static void WritePatchVersion() { File.WriteAllText(PatchMarker, CorePatcher.PatchVersion.ToString()); }
+
+        // An existing copy made by an older HeatSync-Stable: re-patch silently from this folder's own verified backup.
+        static bool TryUpgradeFromBackup()
+        {
+            try
+            {
+                string bak = Path.Combine(dir, "_yedek_orijinal", "GAMEPOWER.exe");
+                if (!File.Exists(Path.Combine(dir, CoreFile)) || !File.Exists(bak) || !Directory.Exists(Path.Combine(dir, "config"))) return false;
+                foreach (var f in CopiedFiles) if (!File.Exists(Path.Combine(dir, f))) return false;
+                if (Sha256(bak) != CorePatcher.SupportedSha256) return false;
+                var steps = CorePatcher.Patch(bak, Path.Combine(dir, CoreFile));
+                foreach (var st in steps) Log("upgrade patch: " + st);
+                WritePatchVersion();
+                Log("Patched copy upgraded to patch version " + CorePatcher.PatchVersion);
+                return true;
+            }
+            catch (Exception ex) { Log("Upgrade from backup failed: " + ex); return false; }
         }
 
         static IEnumerable<string> Concat2(this string[] a, string[] b) { foreach (var s in a) yield return s; foreach (var s in b) yield return s; }

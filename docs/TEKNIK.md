@@ -79,6 +79,10 @@ Hatalı modül: nvml.dll
 
 Gizli ana pencerede `TabIndex = 0` olan `button1` ("新主题", yeni tema) varsayılan odakta. Enter veya Boşluk tuşu onu tetikliyor ve geliştiricinin bilgisayarındaki `D:\ch554\2.4osd\osd_full.png` yüklenmeye çalışılıyor (`ArgumentException: Parametre geçerli değil`). İşleyici boş bırakıldı.
 
+## Çok monitörde görünen pencere
+
+Ana form, yükleme sırasında `base.DesktopLocation = new Point(-500, -500)` ile "gizleniyor" (300×200 px, ortasında "设置" = Ayarlar butonu). Birincil ekranın solunda/üstünde başka bir monitör varsa (ör. `X=-1080, Y=-474` konumunda dikey bir ekran) bu nokta görünür alanda kalıyor. Konum `(-32000, -32000)` yapıldı; Ayarlar açılırken yazılım pencereyi zaten `CenterToScreen()` ile ortalıyor.
+
 ## Yöntem
 
 - Kod ILSpy ile C#'a geri çevrildi; şifreli string'ler (`s.b(str, key)`, XOR) bir araçla çözüldü.

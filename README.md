@@ -30,6 +30,7 @@
 | LCD'deki renkli oklar sıcaklık sabitken bile **sürekli akıyor** | Yazılım ok değerine sıcaklık yerine 0→7 arasında **sürekli dönen bir sayaç** gönderiyor; göstergenin bir kısmına da CPU *yükü* gidiyor | Sol ok **CPU sıcaklığına**, sağ ok **GPU sıcaklığına** göre sabit durur; sadece sıcaklık değişince hareket eder |
 | Açılışta *"Uygulamanızda işlenmemiş özel durum oluştu. Nesne başvurusu bir nesnenin örneğine ayarlanmadı"* | LCD'nin seri portu henüz açılmadan ona yazılmaya çalışılıyor (port `null`) | Port hazır değilse "cihaz henüz bağlı değil" olarak işlenir, yeniden bağlanır, hata penceresi çıkmaz |
 | Gizli pencereye Enter/Boşluk gidince *"Parametre geçerli değil"* | Üreticinin unuttuğu gizli bir geliştirici butonu, olmayan `D:\ch554\...` dosyasını açmaya çalışıyor | Buton devre dışı |
+| Çok monitörlü bilgisayarda köşede Çince **"设置"** butonlu küçük bir pencere görünüyor | Yazılım ana penceresini (-500,-500) noktasına taşıyarak "gizliyor"; birincil ekranın solunda/üstünde monitör varsa bu nokta görünür | Pencere tüm ekranların dışına (-32000,-32000) taşınır |
 | Program **aniden kapanıyor** (Olay Günlüğü: `AccessViolationException`, `nvml.dll`) | HWiNFO sensör kütüphanesi NVIDIA sürücüsünde erişim ihlaline düşüyor | Çağrı korunuyor: hata olursa son değerler korunur, program kapanmaz |
 
 CPU sıcaklığı HWiNFO'nun **CPU (Tctl/Tdie)** sensöründen, GPU sıcaklığı **GPU Temperature** sensöründen okunur. CPU ekranın solunda, GPU sağında gösterilir.

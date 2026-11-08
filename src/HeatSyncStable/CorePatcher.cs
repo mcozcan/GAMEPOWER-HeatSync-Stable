@@ -1,4 +1,4 @@
-// CorePatcher: applies the HeatSync-Stable IL fixes to the user's OWN installed GAMEPOWER.exe
+﻿// CorePatcher: applies the HeatSync-Stable IL fixes to the user's OWN installed GAMEPOWER.exe
 // (GAMEPOWER HeatSync software 2.2.1.0, assembly "usb_hid", Dotfuscator-obfuscated) using dnlib.
 // Obfuscated member names are written as \uXXXX escapes.
 using System;
@@ -14,6 +14,9 @@ namespace HeatSyncStable
     public static class CorePatcher
     {
         /// SHA-256 of the only supported original: GAMEPOWER.exe 2.2.1.0 (11.03.2025)
+        /// Increase when the set of fixes changes; the launcher re-patches older copies from its backup.
+        public const int PatchVersion = 2;
+
         public const string SupportedSha256 = "994498FE073B038E34D1318E577042B079823412BBCF5C2AC810E0CD03185E12";
 
         public static bool IsPatched(string exePath)
@@ -116,6 +119,26 @@ namespace HeatSyncStable
                 var h = x.Methods.Single(m => m.Name == "⇬" && m.Parameters.Count == 3);
                 var body = new CilBody(); body.Instructions.Add(OpCodes.Ret.ToInstruction()); h.Body = body;
                 log.Add("dev button handler -> no-op");
+            }
+
+            // 5) hidden main window: the core "hides" its window at (-500,-500). On multi-monitor layouts with a screen
+            //    left/above the primary one that point is visible (window with a "设置" button). Use (-32000,-32000).
+            {
+                int n = 0;
+                foreach (var m in x.Methods.Where(m => m.HasBody))
+                {
+                    var ins = m.Body.Instructions;
+                    for (int i = 0; i + 2 < ins.Count; i++)
+                        if (ins[i].IsLdcI4() && ins[i].GetLdcI4Value() == -500 && ins[i + 1].IsLdcI4() && ins[i + 1].GetLdcI4Value() == -500
+                            && ins[i + 2].OpCode == OpCodes.Newobj && ins[i + 2].Operand is IMethod c && c.DeclaringType.FullName == "System.Drawing.Point")
+                        {
+                            ins[i].OpCode = OpCodes.Ldc_I4; ins[i].Operand = -32000;
+                            ins[i + 1].OpCode = OpCodes.Ldc_I4; ins[i + 1].Operand = -32000;
+                            n++;
+                        }
+                }
+                if (n != 1) throw new InvalidDataException("Hidden-window position not found exactly once (" + n + ").");
+                log.Add("hidden main window position (-500,-500) -> (-32000,-32000)");
             }
 
             // 4) serial write: optional protocol logger + guard against a null/closed port (was NullReferenceException)
