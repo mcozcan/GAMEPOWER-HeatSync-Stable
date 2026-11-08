@@ -35,6 +35,9 @@ namespace HeatSyncArrowFix
         // The patched core is stored as usb_hid.dll (its assembly name) so it cannot be double-clicked and run
         // as a second, unmanaged instance next to the launcher.
         const string CoreFile = "usb_hid.dll";
+        const string ShowEventName = "HeatSync-ArrowFix-show-settings";
+        static EventWaitHandle showEvent;
+        static bool freshSetup;
         const string DefaultInstall = @"C:\Program Files (x86)\GAMEPOWER\GAMEPOWER\GAMEPOWER";
         static readonly string[] CopiedFiles = { "msvcr120d.dll", "msvcr110d.dll", "NAudio.dll", "Microsoft.Win32.TaskScheduler.dll" };
         static string dir, logPath;
@@ -70,14 +73,25 @@ namespace HeatSyncArrowFix
             Log("==== HeatSync-ArrowFix " + Assembly.GetExecutingAssembly().GetName().Version + " start. folder=" + dir + " args=" + string.Join(" ", args));
 
             bool created;
-            using (var mutex = new Mutex(true, "HeatSync-ArrowFix-single-instance", out created))
+            bool restart = Array.IndexOf(args, "--restart") >= 0;
+            Mutex mutex0 = new Mutex(true, "HeatSync-ArrowFix-single-instance", out created);
+            for (int i = 0; restart && !created && i < 40; i++)
+            {
+                mutex0.Dispose(); Thread.Sleep(500);
+                mutex0 = new Mutex(true, "HeatSync-ArrowFix-single-instance", out created);
+            }
+            using (var mutex = mutex0)
             {
                 if (!created)
                 {
-                    Log("Another HeatSync-ArrowFix instance is running -> exit");
-                    if (!auto) MessageBox.Show("HeatSync-ArrowFix zaten çalışıyor (sistem tepsisinde).", Title, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    // already running: ask the running instance to show its settings window
+                    Log("Another HeatSync-ArrowFix instance is running -> asking it to show settings");
+                    bool signalled = false;
+                    try { using (var ev = EventWaitHandle.OpenExisting(ShowEventName)) { ev.Set(); signalled = true; } } catch { }
+                    if (!signalled && !auto) MessageBox.Show("HeatSync-ArrowFix zaten çalışıyor (sistem tepsisinde).", Title, MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return 1;
                 }
+                showEvent = new EventWaitHandle(false, EventResetMode.AutoReset, ShowEventName);
 
                 // 1) no other GAMEPOWER may run: it would hold the LCD COM port (and lock files during setup)
                 if (!HandleOtherInstances(auto)) return 3;
@@ -101,7 +115,11 @@ namespace HeatSyncArrowFix
                 else Console.SetOut(TextWriter.Null);
 
                 new Thread(WatchOtherInstances) { IsBackground = true, Name = "instance-watch" }.Start();
-                CreateTray();
+                // The tray icon is a window: it may only be created after the core has called
+                // Application.SetCompatibleTextRenderingDefault, i.e. once its message loop is running.
+                EventHandler onIdle = null;
+                onIdle = (s, e) => { Application.Idle -= onIdle; CreateTray(); };
+                Application.Idle += onIdle;
 
                 if (exitAfter > 0)
                     new Thread(() => { Thread.Sleep(exitAfter * 1000); Log("--exit-after reached"); Environment.Exit(0); }) { IsBackground = true }.Start();
@@ -127,7 +145,7 @@ namespace HeatSyncArrowFix
                 catch (TargetInvocationException tie) { Fatal(tie.InnerException ?? tie); return 4; }
                 catch (Exception ex) { Fatal(ex); return 4; }
                 Log("Core exited normally");
-                if (tray != null) { tray.Visible = false; tray.Dispose(); }
+                try { if (tray != null) { tray.Visible = false; tray.Dispose(); } } catch { }
             }
             return 0;
         }
@@ -218,6 +236,7 @@ namespace HeatSyncArrowFix
                 foreach (var s in steps) Log("patch: " + s);
                 WritePatchVersion();
                 Log("Patched copy created (patch version " + CorePatcher.PatchVersion + ")");
+                freshSetup = true;
                 return true;
             }
             catch (Exception ex)
@@ -304,6 +323,10 @@ namespace HeatSyncArrowFix
             try
             {
                 var menu = new ContextMenuStrip();
+                var settingsItem = new ToolStripMenuItem("Ayarlar…", null, (s, e) => ShowSettings());
+                settingsItem.Font = new System.Drawing.Font(settingsItem.Font, System.Drawing.FontStyle.Bold);
+                menu.Items.Add(settingsItem);
+                menu.Items.Add(new ToolStripSeparator());
                 var head = new ToolStripMenuItem("LCD okları neye göre hareket etsin?") { Enabled = false };
                 miTemp = new ToolStripMenuItem("Sıcaklığa göre (CPU / GPU °C)", null, (s, e) => SetArrowSource(false));
                 miLoad = new ToolStripMenuItem("Kullanım yüzdesine göre (CPU / GPU %)", null, (s, e) => SetArrowSource(true));
@@ -311,6 +334,8 @@ namespace HeatSyncArrowFix
                 menu.Items.Add(new ToolStripSeparator());
                 menu.Items.Add("Kayıt klasörünü aç", null, (s, e) => { try { Process.Start("explorer.exe", "\"" + Path.Combine(dir, "logs") + "\""); } catch { } });
                 menu.Items.Add("GitHub sayfası", null, (s, e) => { try { Process.Start("https://github.com/mcozcan/Gamepower-HeatSync-ArrowFix"); } catch { } });
+                menu.Items.Add(new ToolStripSeparator());
+                menu.Items.Add("Çıkış", null, (s, e) => ExitProgram());
                 tray = new NotifyIcon
                 {
                     Icon = System.Drawing.Icon.ExtractAssociatedIcon(Assembly.GetExecutingAssembly().Location),
@@ -318,11 +343,99 @@ namespace HeatSyncArrowFix
                     ContextMenuStrip = menu,
                     Visible = true
                 };
-                tray.MouseClick += (s, e) => { if (e.Button == MouseButtons.Left) { var mi = typeof(NotifyIcon).GetMethod("ShowContextMenu", BindingFlags.Instance | BindingFlags.NonPublic); if (mi != null) mi.Invoke(tray, null); } };
+                tray.MouseClick += (s, e) => { if (e.Button == MouseButtons.Left) ShowSettings(); };
                 UpdateTrayChecks();
+                Log("Tray icon created; arrows: " + HeatSyncFix.Lcd.Describe());
+                uiContext = SynchronizationContext.Current;
+                if (showEvent != null)
+                    new Thread(() => { while (true) { showEvent.WaitOne(); try { uiContext.Post(_ => ShowSettings(), null); } catch { } } }) { IsBackground = true, Name = "show-settings" }.Start();
+                string shownMarker = Path.Combine(dir, "logs", "settings_shown.txt");
+                if (freshSetup || !File.Exists(shownMarker))
+                {
+                    try { File.WriteAllText(shownMarker, DateTime.Now.ToString()); } catch { }
+                    ShowSettings();
+                }
                 Application.ApplicationExit += (s, e) => { try { tray.Visible = false; tray.Dispose(); } catch { } };
             }
             catch (Exception ex) { Log("tray failed: " + ex.Message); }
+        }
+
+        static SynchronizationContext uiContext;
+        static SettingsForm settings;
+
+        static void ShowSettings()
+        {
+            try
+            {
+                if (settings == null || settings.IsDisposed)
+                {
+                    settings = new SettingsForm(tray != null ? tray.Icon : null, new SettingsForm.Bridge
+                    {
+                        SetSource = SetArrowSource,
+                        SetMinLevel = lv => { HeatSyncFix.Lcd.SetMinLevel(lv); SaveIniValue("MinLevel", lv.ToString()); },
+                        GetGpus = GetGpuList,
+                        GetSelectedGpu = GetSelectedGpu,
+                        ApplyGpu = ApplyGpuAndRestart
+                    });
+                    settings.Show();
+                }
+                if (settings.WindowState == FormWindowState.Minimized) settings.WindowState = FormWindowState.Normal;
+                settings.TopMost = true; settings.Activate(); settings.TopMost = false;
+            }
+            catch (Exception ex) { Log("settings window failed: " + ex); }
+        }
+
+        // ---- GPU selection (core internals: ⅌.℟ = HWiNFO devices containing "GPU", ℆.ℕ = AppConfig, ℆.⃼() = save AppConfig)
+        static List<string> GetGpuList()
+        {
+            var t = core.GetType("\u214C");
+            var fld = t == null ? null : t.GetField("\u211F", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+            var list = fld == null ? null : fld.GetValue(null) as List<string>;
+            return list == null ? new List<string>() : new List<string>(list);
+        }
+
+        static object AppConfigObj()
+        {
+            var t = core.GetType("\u2106");
+            var fld = t.GetField("\u2115", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+            return fld.GetValue(null);
+        }
+
+        static string GetSelectedGpu()
+        {
+            var cfg = AppConfigObj();
+            return cfg == null ? null : cfg.GetType().GetProperty("GpuName").GetValue(cfg, null) as string;
+        }
+
+        static void ApplyGpuAndRestart(string gpu)
+        {
+            try
+            {
+                var cfg = AppConfigObj();
+                cfg.GetType().GetProperty("GpuName").SetValue(cfg, gpu, null);
+                MethodInfo save = null;
+                foreach (var m in core.GetType("\u2106").GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic))
+                    if (m.Name == "\u20FC" && m.GetParameters().Length == 0 && m.ReturnType == typeof(void)) save = m;
+                if (save == null) throw new MissingMethodException("AppConfig save method not found");
+                save.Invoke(null, null);
+                Log("GPU set to '" + gpu + "' and saved; restarting");
+                Process.Start(new ProcessStartInfo(Assembly.GetExecutingAssembly().Location, "--restart") { WorkingDirectory = dir, UseShellExecute = true });
+                try { if (tray != null) { tray.Visible = false; tray.Dispose(); } } catch { }
+                Environment.Exit(0);
+            }
+            catch (Exception ex)
+            {
+                Log("GPU change failed: " + ex);
+                MessageBox.Show("GPU değiştirilemedi: " + ex.Message, Title, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        static void ExitProgram()
+        {
+            Log("Exit requested from tray menu");
+            try { if (settings != null && !settings.IsDisposed) settings.Close(); } catch { }
+            try { if (tray != null) { tray.Visible = false; tray.Dispose(); } } catch { }
+            Environment.Exit(0);
         }
 
         static void UpdateTrayChecks()
@@ -335,6 +448,7 @@ namespace HeatSyncArrowFix
         {
             HeatSyncFix.Lcd.SetSource(useLoad);
             UpdateTrayChecks();
+            if (settings != null && !settings.IsDisposed) settings.SyncChoice();
             SaveIniValue("ArrowSource", useLoad ? "Load" : "Temp");
             tray.ShowBalloonTip(2500, "HeatSync-ArrowFix", "LCD okları artık " + (useLoad ? "kullanım yüzdesine" : "sıcaklığa") + " göre hareket ediyor.", ToolTipIcon.Info);
         }

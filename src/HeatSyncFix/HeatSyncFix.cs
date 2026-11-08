@@ -26,6 +26,7 @@ namespace HeatSyncFix
         public static float HysteresisC = 1f;
         public static float LoadSmoothingSec = 3f;
         public static float LoadHysteresis = 3f;
+        public static int MinLevel = 1;          // at least one arrow lit (MinLevel=0 allows all off)
         public const int Levels = 8;
         static readonly int[] last = { -1, -1 };
         static readonly double[] avg = { double.NaN, double.NaN };
@@ -53,18 +54,20 @@ namespace HeatSyncFix
                     else if (k == "hysteresisc") HysteresisC = Math.Max(0f, f);
                     else if (k == "loadsmoothingsec") LoadSmoothingSec = Math.Max(0f, f);
                     else if (k == "loadhysteresis") LoadHysteresis = Math.Max(0f, f);
+                    else if (k == "minlevel") MinLevel = Math.Max(0, Math.Min(Levels - 1, (int)f));
                 }
                 if (MaxC <= MinC) { MinC = 0f; MaxC = 100f; }
             }
             catch { MinC = 0f; MaxC = 100f; }
         }
 
-        public static string Describe() { return UseLoad ? "load 0..100 %, avg " + LoadSmoothingSec + " s, hyst " + LoadHysteresis + " %" : "temp " + MinC + ".." + MaxC + " C, hyst " + HysteresisC + " C"; }
+        public static string Describe() { return "min " + MinLevel + ", " + (UseLoad ? "load 0..100 %, avg " + LoadSmoothingSec + " s, hyst " + LoadHysteresis + " %" : "temp " + MinC + ".." + MaxC + " C, hyst " + HysteresisC + " C"); }
 
         static int Raw(float v, float min, float max)
         {
             if (float.IsNaN(v) || float.IsInfinity(v)) return 0;
             int lv = (int)Math.Floor((v - min) / ((max - min) / Levels));
+            if (lv < MinLevel) lv = MinLevel;
             return lv < 0 ? 0 : lv > Levels - 1 ? Levels - 1 : lv;
         }
         public static int RawLevel(float tempC) { return Raw(tempC, MinC, MaxC); }
@@ -121,17 +124,25 @@ namespace HeatSyncFix
             return Stable(side, tempC, MinC, MaxC, HysteresisC);
         }
 
+        /// last values seen per side (CPU = 0, GPU = 1), for the settings window
+        public static readonly float[] LastTemp = { float.NaN, float.NaN }, LastLoad = { float.NaN, float.NaN };
+        public static readonly int[] LastLevel = { -1, -1 };
+        public static DateTime LastUpdate = DateTime.MinValue;
+
         /// patch v3 call. side: 0 = CPU (packet byte 10), 1 = GPU (packet byte 11)
         public static int ArrowLevel(int side, float tempC, float loadPct)
         {
             int t; if (Test(out t)) return t;
-            if (UseLoad) return Stable(side, Smooth(side, loadPct), 0f, 100f, LoadHysteresis);
-            return Stable(side, tempC, MinC, MaxC, HysteresisC);
+            int lv = UseLoad ? Stable(side, Smooth(side, loadPct), 0f, 100f, LoadHysteresis) : Stable(side, tempC, MinC, MaxC, HysteresisC);
+            if (side == 0 || side == 1) { LastTemp[side] = tempC; LastLoad[side] = loadPct; LastLevel[side] = lv; LastUpdate = DateTime.Now; }
+            return lv;
         }
 
         public static void Reset() { lock (lk) { last[0] = -1; last[1] = -1; avg[0] = double.NaN; avg[1] = double.NaN; } }
 
         /// switch arrow source at runtime (tray menu); takes effect with the next LCD packet
+        public static void SetMinLevel(int minLevel) { MinLevel = Math.Max(0, Math.Min(Levels - 1, minLevel)); Reset(); AppLog.Write("Arrow min level -> " + MinLevel); }
+
         public static void SetSource(bool useLoad) { UseLoad = useLoad; Reset(); AppLog.Write("Arrow source -> " + Describe()); }
     }
     // Guard for the HWiNFO SDK "update sensors of device N" export (#216 of msvcr120d.dll = HWiNFO64.dll).

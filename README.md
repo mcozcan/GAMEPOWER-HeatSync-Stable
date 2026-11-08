@@ -71,15 +71,18 @@ Orijinal yazılımın açılış görevi (`UsbMonitor`) duruyorsa onu **Devre d�
 - İndirdiğiniz ZIP'in SHA-256 değerini [Releases](../../releases/latest) sayfasındaki değerle karşılaştırabilirsiniz (`Get-FileHash dosya.zip`).
 - Yanlış alarm görürseniz Microsoft'a bildirebilirsiniz: <https://www.microsoft.com/wdsi/filesubmission>
 
-## Oklar: sıcaklık mı, kullanım yüzdesi mi?
+## Ayar penceresi
 
-Saatin yanındaki **HeatSync-ArrowFix** simgesine sağ tıklayın:
+İlk açılışta, ya da program çalışırken `HeatSync-ArrowFix.exe`'ye **tekrar çift tıklayınca**, **HeatSync-ArrowFix Ayarları** penceresi açılır. Saatin yanındaki HeatSync-ArrowFix simgesine tıklamak da aynı pencereyi açar.
 
-- **Sıcaklığa göre (CPU / GPU °C)**: varsayılan. Oklar 0–100 °C ölçeğinde, yalnızca sıcaklık değişince hareket eder.
-- **Kullanım yüzdesine göre (CPU / GPU %)**: oklar işlemci/ekran kartı yüküne göre dolar. Yük her saniye değiştiği için son ~3 saniyenin ortalaması alınır; oklar her saniye zıplamaz.
+- **LCD okları neye göre hareket etsin?**
+  - **Sıcaklığa göre (CPU / GPU °C)**: varsayılan. 0–100 °C ölçeği; oklar yalnızca sıcaklık değişince hareket eder.
+  - **Kullanım yüzdesine göre (CPU / GPU %)**: işlemci/ekran kartı yükü. Son ~3 saniyenin ortalaması kullanılır; oklar her saniye zıplamaz.
+- **En az 1 ok her zaman yansın**: varsayılan olarak açık.
+- **Ekran kartı (GPU)**: İşlemcide dahili grafik varsa (ör. AMD Radeon) ve ayrıca harici kart takılıysa (ör. NVIDIA), LCD'nin sağ tarafında hangisinin gösterileceğini seçin. **Uygula** dediğinizde program birkaç saniyede kendini yeniden başlatır.
+- **Şu an LCD'ye giden**: CPU/GPU sıcaklığı, kullanımı ve yanan ok sayısı canlı görünür.
 
-Seçim anında uygulanır ve `HeatSync-ArrowFix.ini` dosyasına kaydedilir. Sol ok her zaman CPU, sağ ok GPU içindir.
-
+Seçimler anında uygulanır ve `HeatSync-ArrowFix.ini`'ye kaydedilir. Sol ok her zaman CPU, sağ ok GPU içindir. Programı kapatmak için simgeye sağ tıklayıp **Çıkış** deyin.
 ## Ayarlar
 
 `HeatSync-ArrowFix.ini`:
@@ -92,6 +95,8 @@ ArrowMinC=0
 ArrowMaxC=100
 ; Kademe sınırında titremeyi önleyen pay (°C)
 HysteresisC=1
+; En az kaç ok yansın (0..7)
+MinLevel=1
 ; Kullanım modunda ortalama süresi (sn) ve titreme payı (yüzde puan)
 LoadSmoothingSec=3
 LoadHysteresis=3

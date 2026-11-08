@@ -38,7 +38,9 @@ KOMUTLAR
   HeatSync-ArrowFix.exe --setup     duzeltilmis kopyayi yeniden olusturur
 
 OKLAR: SICAKLIK MI, KULLANIM MI?
-  Saatin yanindaki HeatSync-ArrowFix simgesine sag tiklayin ve secin:
+  Ayar penceresi: program calisirken HeatSync-ArrowFix.exe'ye tekrar cift tiklayin (veya tepsi simgesine).
+  Oradan: oklar sicaklik/kullanim, en az 1 ok, iki ekran karti varsa hangisi (NVIDIA / AMD).
+  Tepsi simgesi menusu ayni secenekleri ve Cikis'i icerir:
   'Sicakliga gore' (varsayilan) veya 'Kullanim yuzdesine gore'. Aninda uygulanir.
 
 AYAR
