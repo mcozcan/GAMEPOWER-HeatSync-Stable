@@ -2,7 +2,8 @@
 //  * first run: copies the needed files from the user's own installed GAMEPOWER (read-only, never modified)
 //    into this folder and applies the IL fixes (CorePatcher) to the copy
 //  * runs the patched copy from THIS folder (own config\), never starts the original installation
-//  * offers to close a running original (both cannot share the LCD COM port)
+//  * asks the user to close a running original from its tray icon (both cannot share the LCD COM port)
+//  * does NOT create/modify scheduled tasks and does NOT terminate other processes
 //  * logs unhandled exceptions with full stack traces to logs\HeatSync_yyyyMMdd.log
 //  * --debug     : also logs the app's console output, first-chance exceptions and every LCD packet
 //  * --lcd-test  : shows arrow values 0..7, 5 s each
@@ -16,20 +17,21 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
-using System.Xml;
 
-[assembly: AssemblyTitle("HeatSync-ArrowFix")]
+[assembly: AssemblyTitle("HeatSync-ArrowFix - LCD arrow fix for GAMEPOWER HeatSync")]
 [assembly: AssemblyProduct("HeatSync-ArrowFix")]
-[assembly: AssemblyDescription("Fixed launcher for the GAMEPOWER HeatSync A-RGB LCD software")]
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyDescription("Open-source launcher: runs a locally patched copy of the GAMEPOWER HeatSync LCD software. https://github.com/mcozcan/HeatSync-ArrowFix")]
+[assembly: AssemblyCompany("Mehmet Can Özcan (open source, MIT)")]
+[assembly: AssemblyCopyright("Copyright (c) 2026 Mehmet Can Özcan - MIT License")]
+[assembly: AssemblyVersion("1.0.1.0")]
+[assembly: AssemblyFileVersion("1.0.1.0")]
+[assembly: AssemblyInformationalVersion("1.0.1")]
 
 namespace HeatSyncArrowFix
 {
     static class Program
     {
         const string Title = "HeatSync-ArrowFix";
-        const string TaskName = "UsbMonitor";
         // The patched core is stored as usb_hid.dll (its assembly name) so it cannot be double-clicked and run
         // as a second, unmanaged instance next to the launcher.
         const string CoreFile = "usb_hid.dll";
@@ -68,7 +70,7 @@ namespace HeatSyncArrowFix
             Log("==== HeatSync-ArrowFix " + Assembly.GetExecutingAssembly().GetName().Version + " start. folder=" + dir + " args=" + string.Join(" ", args));
 
             bool created;
-            using (var mutex = new Mutex(true, "Global\\HeatSync-ArrowFix-single-instance", out created))
+            using (var mutex = new Mutex(true, "HeatSync-ArrowFix-single-instance", out created))
             {
                 if (!created)
                 {
@@ -82,9 +84,6 @@ namespace HeatSyncArrowFix
 
                 // 2) patched copy present? otherwise build it from the installed original
                 if (!EnsureCore(setup, auto)) return 2;
-
-                // 3) optional: point the logon task to this copy (asked once)
-                if (!auto) OfferAutostart();
 
                 // 4) exception logging
                 Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
@@ -310,9 +309,10 @@ namespace HeatSyncArrowFix
         }
 
         // Runs for the whole session: another GAMEPOWER (original or anything else) would fight for the LCD COM port.
+        // Only informs the user; never terminates other processes.
         static void WatchOtherInstances()
         {
-            var asked = new HashSet<int>();
+            var warned = new HashSet<int>();
             while (true)
             {
                 Thread.Sleep(3000);
@@ -320,14 +320,11 @@ namespace HeatSyncArrowFix
                 {
                     foreach (var p in Process.GetProcessesByName("GAMEPOWER"))
                     {
-                        if (asked.Contains(p.Id)) continue;
-                        asked.Add(p.Id);
-                        string path = SafePath(p) ?? "?";
-                        Log("Another GAMEPOWER started while running: pid=" + p.Id + " path=" + path);
-                        var r = MessageBox.Show("Başka bir GAMEPOWER programı açıldı:\r\n" + path + "\r\n\r\n" +
-                            "İki program LCD'yi aynı anda kullanırsa ekran ve program bozulabilir. O program kapatılsın mı?",
-                            Title, MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button1, MessageBoxOptions.DefaultDesktopOnly);
-                        if (r == DialogResult.Yes) { try { p.Kill(); Log("Closed pid=" + p.Id); } catch (Exception ex) { Log("Could not close pid=" + p.Id + ": " + ex.Message); } }
+                        if (!warned.Add(p.Id)) continue;
+                        Log("Another GAMEPOWER started while running: pid=" + p.Id + " path=" + (SafePath(p) ?? "?"));
+                        MessageBox.Show("Başka bir GAMEPOWER programı açıldı.\r\n\r\n" +
+                            "İki program LCD'yi aynı anda kullanamaz. Lütfen o programı sistem tepsisindeki simgesine sağ tıklayıp kapatın.",
+                            Title, MessageBoxButtons.OK, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button1, MessageBoxOptions.DefaultDesktopOnly);
                     }
                 }
                 catch (Exception ex) { Log("watch error: " + ex.Message); }
@@ -336,101 +333,26 @@ namespace HeatSyncArrowFix
 
         static string SafePath(Process p) { try { return p.MainModule.FileName; } catch { return null; } }
 
+        // Another GAMEPOWER would hold the LCD COM port (and lock files during setup): ask the user to close it.
         static bool HandleOtherInstances(bool auto)
         {
-            var self = Process.GetCurrentProcess();
-            foreach (var p in Process.GetProcesses())
+            while (true)
             {
-                if (p.Id == self.Id || !p.ProcessName.Equals("GAMEPOWER", StringComparison.OrdinalIgnoreCase)) continue;
-                string path = SafePath(p) ?? "?";
-                Log("Found running GAMEPOWER pid=" + p.Id + " path=" + path);
-                var r = auto ? DialogResult.Yes : MessageBox.Show(
-                    "Başka bir GAMEPOWER programı çalışıyor:\r\n" + path + "\r\n\r\n" +
-                    "LCD'yi (COM portunu) iki program aynı anda kullanamaz. Bu program kapatılıp HeatSync-ArrowFix başlatılsın mı?",
-                    Title, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                if (r != DialogResult.Yes) { Log("User declined closing other instance -> exit"); return false; }
-                try { p.Kill(); p.WaitForExit(5000); Log("Closed pid=" + p.Id); Thread.Sleep(1500); }
-                catch (Exception ex)
-                {
-                    Log("Could not close pid=" + p.Id + ": " + ex.Message);
-                    MessageBox.Show("Diğer GAMEPOWER kapatılamadı: " + ex.Message + "\r\nLütfen sistem tepsisinden kapatıp tekrar deneyin.", Title, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        // Logon task "UsbMonitor" (created by the original software) -> optionally point it to this copy.
-        static void OfferAutostart()
-        {
-            string marker = Path.Combine(dir, "logs", "autostart_asked.txt");
-            bool alreadyAsked = File.Exists(marker);
-            try
-            {
-                string xml = RunSchtasks("/Query /TN \"" + TaskName + "\" /XML");
-                if (xml == null) return;
-                var doc = new XmlDocument(); doc.LoadXml(xml);
-                var ns = new XmlNamespaceManager(doc.NameTable); ns.AddNamespace("t", "http://schemas.microsoft.com/windows/2004/02/mit/task");
-                var cmd = doc.SelectSingleNode("//t:Actions/t:Exec/t:Command", ns);
-                if (cmd == null) return;
-                var argsNode = doc.SelectSingleNode("//t:Actions/t:Exec/t:Arguments", ns);
-                string me = Assembly.GetExecutingAssembly().Location;
-                string current = cmd.InnerText.Trim('"');
-                if (current.Equals(me, StringComparison.OrdinalIgnoreCase)) return;
-                // silently repair targets that belong to this program: anything in this folder (old core exe) or the
-                // previous product name HeatSync-Stable.exe (the user already agreed to autostart this program)
-                bool repairOwn = string.Equals(Path.GetDirectoryName(current), dir, StringComparison.OrdinalIgnoreCase)
-                                 || Path.GetFileName(current).Equals("HeatSync-Stable.exe", StringComparison.OrdinalIgnoreCase);
-                if (repairOwn)
-                {
-                    Log("Logon task points to this folder's old core exe -> repointing to " + me);
-                    RepointTask(doc, ns, cmd, argsNode, me);
-                    return;
-                }
-                if (alreadyAsked) return;
-                Log("Logon task '" + TaskName + "' currently starts: " + current + " " + (argsNode != null ? argsNode.InnerText : ""));
+                var self = Process.GetCurrentProcess();
+                var others = new List<Process>();
+                foreach (var p in Process.GetProcessesByName("GAMEPOWER")) if (p.Id != self.Id) others.Add(p);
+                if (others.Count == 0) return true;
+                foreach (var p in others) Log("Found running GAMEPOWER pid=" + p.Id + " path=" + (SafePath(p) ?? "?"));
+                if (auto) { Log("Another GAMEPOWER is running in -auto mode -> exit"); return false; }
                 var r = MessageBox.Show(
-                    "Windows açılışında şu an başka bir program başlatılıyor (Görev Zamanlayıcı: \"" + TaskName + "\"):\r\n" + current +
-                    "\r\n\r\nAçılışta bunun yerine HeatSync-ArrowFix başlatılsın mı?\r\n(Orijinal kurulum dosyalarına dokunulmaz; yalnızca bu görevin hedefi değişir. Bu soru bir daha sorulmaz.)",
-                    Title, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                File.WriteAllText(marker, DateTime.Now + " answer=" + r + " previousTarget=" + current + " " + (argsNode != null ? argsNode.InnerText : ""));
-                if (r != DialogResult.Yes) return;
-                RepointTask(doc, ns, cmd, argsNode, me);
-            }
-            catch (Exception ex) { Log("Autostart check failed: " + ex.Message); }
-        }
-
-        static void RepointTask(XmlDocument doc, XmlNamespaceManager ns, XmlNode cmd, XmlNode argsNode, string me)
-        {
-            try
-            {
-                cmd.InnerText = me;
-                if (argsNode == null) { argsNode = doc.CreateElement("Arguments", ns.LookupNamespace("t")); cmd.ParentNode.AppendChild(argsNode); }
-                argsNode.InnerText = "-auto";
-                var wd = doc.SelectSingleNode("//t:Actions/t:Exec/t:WorkingDirectory", ns);
-                if (wd == null) { wd = doc.CreateElement("WorkingDirectory", ns.LookupNamespace("t")); cmd.ParentNode.AppendChild(wd); }
-                wd.InnerText = dir;
-                string tmp = Path.Combine(Path.GetTempPath(), "HeatSync-ArrowFix-task.xml");
-                File.WriteAllText(tmp, doc.OuterXml, Encoding.Unicode);
-                RunSchtasks("/Create /TN \"" + TaskName + "\" /XML \"" + tmp + "\" /F");
-                File.Delete(tmp);
-                Log("Logon task now starts " + me + " -auto");
-            }
-            catch (Exception ex) { Log("Autostart check failed: " + ex.Message); }
-        }
-
-        static string RunSchtasks(string arguments)
-        {
-            var psi = new ProcessStartInfo("schtasks.exe", arguments)
-            { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true, StandardOutputEncoding = Encoding.Unicode };
-            if (arguments.StartsWith("/Query")) psi.StandardOutputEncoding = Encoding.Default;
-            using (var p = Process.Start(psi))
-            {
-                string o = p.StandardOutput.ReadToEnd(); p.StandardError.ReadToEnd(); p.WaitForExit();
-                return p.ExitCode == 0 ? o : null;
+                    "Başka bir GAMEPOWER programı çalışıyor:\r\n" + (SafePath(others[0]) ?? "GAMEPOWER.exe") + "\r\n\r\n" +
+                    "LCD'yi (COM portunu) iki program aynı anda kullanamaz.\r\n" +
+                    "Lütfen saatin yanındaki sistem tepsisinde GAMEPOWER simgesine sağ tıklayıp kapatın, sonra \"Yeniden Dene\"ye basın.",
+                    Title, MessageBoxButtons.RetryCancel, MessageBoxIcon.Warning);
+                if (r != DialogResult.Retry) { Log("User cancelled while another GAMEPOWER was running -> exit"); return false; }
+                Thread.Sleep(1000);
             }
         }
-
         sealed class LineWriter : TextWriter
         {
             readonly StringBuilder buf = new StringBuilder();

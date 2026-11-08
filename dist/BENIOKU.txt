@@ -18,6 +18,20 @@ NE DUZELIR
   - Gizli pencereye Enter gidince cikan "Parametre gecerli degil" hatasi.
   - HWiNFO/nvml.dll kaynakli ani kapanma.
 
+WINDOWS ACILISINDA BASLATMA (istege bagli, bir kez elle)
+  Program Windows acilis ayarlarina kendiliginden dokunmaz.
+  Gorev Zamanlayici > Gorev Olustur:
+    Genel        : Ad "HeatSync-ArrowFix", "En yuksek ayricaliklarla calistir" isaretli
+    Tetikleyici  : Oturum acildiginda
+    Eylem        : Program = HeatSync-ArrowFix.exe tam yolu, Bagimsiz degisken = -auto,
+                   Baslangic konumu = bu klasor
+  Orijinal yazilimin "UsbMonitor" gorevi varsa devre disi birakin.
+
+WINDOWS DEFENDER
+  Imzasiz yeni programlar bazen "Trojan:Win32/Wacatac.B!ml" olarak isaretlenir. "!ml" bir virus
+  imzasi degil, otomatik suphe tahminidir. Kaynak kod: https://github.com/mcozcan/HeatSync-ArrowFix
+  Yanlis alarm bildirimi: https://www.microsoft.com/wdsi/filesubmission
+
 KOMUTLAR
   HeatSync-ArrowFix.exe --debug     ayrintili kayit (logs\)
   HeatSync-ArrowFix.exe --lcd-test  oklari 0->7 kademelerinde 5'er sn gosterir
@@ -27,7 +41,6 @@ AYAR
   HeatSync-ArrowFix.ini : ArrowMinC / ArrowMaxC / HysteresisC
 
 KALDIRMA
-  Klasoru silin. Acilis gorevini (Gorev Zamanlayici > UsbMonitor) yonlendirdiyseniz
-  eski hedef logs\autostart_asked.txt icinde yazar.
+  Klasoru silin. Kendiniz bir acilis gorevi olusturduysaniz onu da Gorev Zamanlayici'dan silin.
 
 Bu proje GAMEPOWER, TURZX veya REALiX (HWiNFO) ile baglantili degildir. Kullanim riski size aittir.

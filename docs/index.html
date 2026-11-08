@@ -199,7 +199,7 @@
       <li><b>Ayrı bir klasöre çıkarın</b><span>Ör. <code>Belgeler\HeatSync-ArrowFix</code>. Kurulu GAMEPOWER klasörünün içine değil.</span></li>
       <li><b>HeatSync-ArrowFix.exe'yi açın</b><span>Yönetici iznini onaylayın. Orijinal yazılım da bunu ister, çünkü sensörler HWiNFO sürücüsüyle okunur.</span></li>
       <li><b>Düzeltilmiş kopyayı oluşturun</b><span>Program kurulu GAMEPOWER'ı bulur, sürümünü SHA-256 ile doğrular ve onayınızla kendi klasöründe düzeltilmiş kopyayı oluşturur.</span></li>
-      <li><b>Hepsi bu</b><span>Program pencere açmaz, sistem tepsisinde çalışır. İsterseniz Windows açılışında orijinal yerine bu kopyanın başlamasını seçebilirsiniz.</span></li>
+      <li><b>Hepsi bu</b><span>Program pencere açmaz, sistem tepsisinde çalışır. Windows açılışında başlaması için <a href="https://github.com/mcozcan/HeatSync-ArrowFix#windows-açılışında-başlatma">Görev Zamanlayıcı tarifini</a> bir kez uygulayabilirsiniz.</span></li>
     </ol>
     <div class="callout">🔒 <b>Orijinal kurulum hiç değiştirilmez</b>, cihazın firmware'ine veya belleğine bir şey yazılmaz. Kaldırmak için klasörü silmeniz yeterli.</div>
   </section>
@@ -224,11 +224,13 @@
     <details><summary>Okların rengini değiştirebilir miyim?</summary>
       <p>Hayır. Renkler LCD'nin kendi belleğindeki görüntülerde; yazılım yalnızca kaç okun yanacağını gönderebiliyor. Tutucunun gövdesindeki büyük ARGB ışığın rengi ise anakartınızın RGB yazılımından ayarlanır.</p></details>
     <details><summary>Orijinal program açıkken çalışır mı?</summary>
-      <p>LCD'yi iki program aynı anda kullanamaz. HeatSync-ArrowFix bunu algılar ve diğerini kapatmayı sorar.</p></details>
+      <p>LCD'yi iki program aynı anda kullanamaz. HeatSync-ArrowFix bunu algılar ve diğerini sistem tepsisinden kapatmanızı ister; hiçbir programı kendisi zorla kapatmaz.</p></details>
     <details><summary>Başka bir yazılım sürümüyle çalışır mı?</summary>
       <p>Şimdilik yalnızca 2.2.1.0 destekleniyor. Farklı bir sürüm algılanırsa hiçbir şey değiştirilmez. <a href="https://github.com/mcozcan/HeatSync-ArrowFix/issues">Issue açarak</a> bildirebilirsiniz.</p></details>
     <details><summary>Ekranın köşesinde Çince “设置” yazan küçük bir pencere çıkıyordu?</summary>
       <p>Orijinal yazılım ana penceresini ekranın dışına taşıyarak “gizliyor”, ama birden fazla monitörde o nokta başka bir ekranın üzerine denk gelebiliyor. HeatSync-ArrowFix pencereyi tüm ekranların dışına taşır. (“设置” = Ayarlar)</p></details>
+    <details><summary>Windows Defender “Wacatac.B!ml” uyarısı verdi?</summary>
+      <p>Sondaki <code>!ml</code> bunun bilinen bir virüs imzası değil, imzasız ve yönetici izni isteyen yeni programlar için verilen otomatik bir şüphe tahmini olduğunu gösterir. 1.0.0'daki başlatıcı Windows açılış görevini kendisi yazıyordu; 1.0.1'de bu davranış kaldırıldı. Kaynak kodun tamamı açık; ZIP'in SHA-256 değerini Releases sayfasıyla karşılaştırabilir, yanlış alarmı <a href="https://www.microsoft.com/wdsi/filesubmission">Microsoft'a bildirebilirsiniz</a>.</p></details>
     <details><summary>Neden yönetici izni istiyor?</summary>
       <p>Orijinal yazılımla aynı sebepten: CPU/GPU sensörleri HWiNFO sürücüsü üzerinden okunuyor ve bu, Windows'ta yönetici izni gerektiriyor.</p></details>
     <details><summary>Bir sorun olursa ne yapmalıyım?</summary>

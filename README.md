@@ -44,11 +44,32 @@ CPU sıcaklığı HWiNFO'nun **CPU (Tctl/Tdie)** sensöründen, GPU sıcaklığ�
 2. ZIP'i ayrı bir klasöre çıkarın (ör. `Belgeler\HeatSync-ArrowFix`). Kurulu GAMEPOWER klasörünün **içine çıkarmayın**.
 3. **`HeatSync-ArrowFix.exe`** dosyasına çift tıklayın ve yönetici iznini onaylayın (orijinal yazılım da bunu ister).
 4. İlk açılışta program, kurulu GAMEPOWER'ı (`C:\Program Files (x86)\GAMEPOWER\...`) bulur, sürümünü SHA-256 ile doğrular ve onayınızla düzeltilmiş kopyayı kendi klasöründe oluşturur.
-5. İsterseniz Windows açılışında orijinal yerine HeatSync-ArrowFix'ın başlamasını seçebilirsiniz (tek seferlik soru).
+5. Windows açılışında otomatik başlamasını isterseniz aşağıdaki [Windows açılışında başlatma](#windows-açılışında-başlatma) adımlarını uygulayın.
 
 Program pencere açmaz; saatin yanındaki **sistem tepsisinde** çalışır.
 
-**Orijinal kurulum hiçbir şekilde değiştirilmez.** Kaldırmak için klasörü silmeniz yeterli. Açılış görevini yönlendirdiyseniz eski hedef `logs\autostart_asked.txt` dosyasında yazar.
+**Orijinal kurulum hiçbir şekilde değiştirilmez.** Kaldırmak için klasörü silmeniz yeterli.
+
+## Windows açılışında başlatma
+
+HeatSync-ArrowFix Windows'un açılış ayarlarına **kendiliğinden dokunmaz**. Otomatik başlamasını isterseniz bir kez elle ayarlayın:
+
+1. Başlat menüsünde **Görev Zamanlayıcı**'yı açın → sağda **Görev Oluştur…** (Temel görev değil).
+2. **Genel:** Ad `HeatSync-ArrowFix`, **En yüksek ayrıcalıklarla çalıştır** işaretli.
+3. **Tetikleyiciler → Yeni:** *Görevi başlat:* **Oturum açıldığında**.
+4. **Eylemler → Yeni:** *Program:* `HeatSync-ArrowFix.exe` dosyasının tam yolu · *Bağımsız değişkenler:* `-auto` · *Başlangıç konumu:* bu klasörün yolu.
+5. **Koşullar:** Dizüstü bilgisayardaysanız *"Yalnızca bilgisayar AC gücündeyse başlat"* işaretini kaldırın → **Tamam**.
+
+Orijinal yazılımın açılış görevi (`UsbMonitor`) duruyorsa onu **Devre dışı bırakın**; aksi hâlde iki program LCD için çakışır.
+
+## Windows Defender uyarısı
+
+İmzasız, yeni ve yönetici izni isteyen programlar Defender'ın yapay zekâ tabanlı tahmininde bazen `Trojan:Win32/Wacatac.B!ml` olarak işaretlenir. Sondaki **`!ml`**, bunun bilinen bir virüs imzası değil, otomatik bir **şüphe tahmini** olduğunu gösterir.
+
+- **1.0.0**'daki başlatıcı açılış görevini kendisi yazıyor ve diğer programı zorla kapatıyordu; Defender bunu işaretledi. **1.0.1**'de bu iki davranış tamamen kaldırıldı.
+- Kaynak kodun tamamı bu depoda; paketi `build.ps1` ile kendiniz derleyebilirsiniz.
+- İndirdiğiniz ZIP'in SHA-256 değerini [Releases](../../releases/latest) sayfasındaki değerle karşılaştırabilirsiniz (`Get-FileHash dosya.zip`).
+- Yanlış alarm görürseniz Microsoft'a bildirebilirsiniz: <https://www.microsoft.com/wdsi/filesubmission>
 
 ## Ayarlar
 
@@ -76,7 +97,7 @@ Okların daha belirgin hareket etmesi için ör. `ArrowMinC=30`, `ArrowMaxC=90` 
 Hayır. Renkler LCD'nin kendi belleğindeki görüntülerde. Yazılım sadece kaç ok yanacağını gönderebiliyor (`--lcd-test` ile görebilirsiniz). Tutucunun gövdesindeki büyük ARGB ışığın rengi ise anakartınızın RGB yazılımından ayarlanır.
 
 **Orijinal program açıkken çalışır mı?**
-LCD'yi (COM portunu) iki program aynı anda kullanamaz. HeatSync-ArrowFix bunu algılar ve diğerini kapatmayı sorar.
+LCD'yi (COM portunu) iki program aynı anda kullanamaz. HeatSync-ArrowFix bunu algılar ve diğerini sistem tepsisinden kapatmanızı ister; hiçbir programı kendisi zorla kapatmaz.
 
 **Başka bir sürümle çalışır mı?**
 Şimdilik yalnızca 2.2.1.0 (SHA-256 `994498FE…5E12`). Farklı sürüm algılanırsa hiçbir şey değiştirilmez. Lütfen bir [issue](../../issues) açın.
@@ -85,8 +106,8 @@ LCD'yi (COM portunu) iki program aynı anda kullanamaz. HeatSync-ArrowFix bunu a
 
 ```powershell
 # .NET SDK 6+ gerekir (net48 hedefleri referans paketleriyle derlenir)
-./build.ps1 -Version 1.0.0
-# çıktı: artifacts/HeatSync-ArrowFix-v1.0.0.zip
+./build.ps1 -Version 1.0.1
+# çıktı: artifacts/HeatSync-ArrowFix-v1.0.1.zip
 ```
 
 | Klasör | İçerik |
