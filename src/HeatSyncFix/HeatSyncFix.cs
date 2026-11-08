@@ -1,4 +1,4 @@
-// HeatSyncFix.dll - helper library used by the patched GAMEPOWER.exe (HeatSync-Stable).
+﻿// HeatSyncFix.dll - helper library used by the patched GAMEPOWER.exe (HeatSync-ArrowFix).
 //
 //  Lcd.ArrowLevel : replaces the free-running 0..7 animation counter that the original
 //                   software wrote into bytes [10] (CPU side) and [11] (GPU side) of every
@@ -30,7 +30,8 @@ namespace HeatSyncFix
         {
             try
             {
-                string ini = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "HeatSync-Stable.ini");
+                string ini = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "HeatSync-ArrowFix.ini");
+                if (!File.Exists(ini)) ini = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "HeatSync-Stable.ini");   // previous name
                 if (!File.Exists(ini)) return;
                 foreach (var raw in File.ReadAllLines(ini))
                 {

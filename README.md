@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/icon.png" width="96" alt="HeatSync-Stable">
+  <img src="docs/icon.png" width="96" alt="HeatSync-ArrowFix">
 </p>
 
-<h1 align="center">HeatSync-Stable</h1>
+<h1 align="center">HeatSync-ArrowFix</h1>
 
 <p align="center">
   <b>GAMEPOWER HeatSync A-RGB LCD VGA Holder</b> yazılımı için düzeltme paketi.<br>
@@ -10,13 +10,13 @@
 </p>
 
 <p align="center">
-  <a href="../../releases/latest"><img alt="İndir" src="https://img.shields.io/github/v/release/mcozcan/HeatSync-Stable?label=%C4%B0ndir&style=for-the-badge&color=2563eb"></a>
+  <a href="../../releases/latest"><img alt="İndir" src="https://img.shields.io/github/v/release/mcozcan/HeatSync-ArrowFix?label=%C4%B0ndir&style=for-the-badge&color=2563eb"></a>
   <img alt="Windows 10/11" src="https://img.shields.io/badge/Windows-10%20%2F%2011-0078D6?style=for-the-badge&logo=windows">
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/Lisans-MIT-16a34a?style=for-the-badge"></a>
 </p>
 
 <p align="center">
-  <a href="https://mcozcan.github.io/HeatSync-Stable/">Tanıtım sayfası</a> ·
+  <a href="https://mcozcan.github.io/HeatSync-ArrowFix/">Tanıtım sayfası</a> ·
   <a href="docs/TEKNIK.md">Teknik inceleme</a> ·
   <a href="../../issues">Sorun bildir</a>
 </p>
@@ -25,7 +25,7 @@
 
 ## Neyi düzeltir?
 
-| Sorun (orijinal yazılım 2.2.1.0) | Sebep | HeatSync-Stable |
+| Sorun (orijinal yazılım 2.2.1.0) | Sebep | HeatSync-ArrowFix |
 |---|---|---|
 | LCD'deki renkli oklar sıcaklık sabitken bile **sürekli akıyor** | Yazılım ok değerine sıcaklık yerine 0→7 arasında **sürekli dönen bir sayaç** gönderiyor; göstergenin bir kısmına da CPU *yükü* gidiyor | Sol ok **CPU sıcaklığına**, sağ ok **GPU sıcaklığına** göre sabit durur; sadece sıcaklık değişince hareket eder |
 | Açılışta *"Uygulamanızda işlenmemiş özel durum oluştu. Nesne başvurusu bir nesnenin örneğine ayarlanmadı"* | LCD'nin seri portu henüz açılmadan ona yazılmaya çalışılıyor (port `null`) | Port hazır değilse "cihaz henüz bağlı değil" olarak işlenir, yeniden bağlanır, hata penceresi çıkmaz |
@@ -38,13 +38,13 @@ CPU sıcaklığı HWiNFO'nun **CPU (Tctl/Tdie)** sensöründen, GPU sıcaklığ�
 ## İndirme ve kurulum
 
 > **Gerekli:** Üreticinin **GAMEPOWER HeatSync** yazılımı (sürüm **2.2.1.0**) bilgisayarınızda kurulu olmalı.
-> HeatSync-Stable üreticinin dosyalarını **içermez**; ilk açılışta sizin kurulu kopyanızdan alır.
+> HeatSync-ArrowFix üreticinin dosyalarını **içermez**; ilk açılışta sizin kurulu kopyanızdan alır.
 
-1. [**Releases**](../../releases/latest) sayfasından `HeatSync-Stable-vX.Y.Z.zip` dosyasını indirin.
-2. ZIP'i ayrı bir klasöre çıkarın (ör. `Belgeler\HeatSync-Stable`). Kurulu GAMEPOWER klasörünün **içine çıkarmayın**.
-3. **`HeatSync-Stable.exe`** dosyasına çift tıklayın ve yönetici iznini onaylayın (orijinal yazılım da bunu ister).
+1. [**Releases**](../../releases/latest) sayfasından `HeatSync-ArrowFix-vX.Y.Z.zip` dosyasını indirin.
+2. ZIP'i ayrı bir klasöre çıkarın (ör. `Belgeler\HeatSync-ArrowFix`). Kurulu GAMEPOWER klasörünün **içine çıkarmayın**.
+3. **`HeatSync-ArrowFix.exe`** dosyasına çift tıklayın ve yönetici iznini onaylayın (orijinal yazılım da bunu ister).
 4. İlk açılışta program, kurulu GAMEPOWER'ı (`C:\Program Files (x86)\GAMEPOWER\...`) bulur, sürümünü SHA-256 ile doğrular ve onayınızla düzeltilmiş kopyayı kendi klasöründe oluşturur.
-5. İsterseniz Windows açılışında orijinal yerine HeatSync-Stable'ın başlamasını seçebilirsiniz (tek seferlik soru).
+5. İsterseniz Windows açılışında orijinal yerine HeatSync-ArrowFix'ın başlamasını seçebilirsiniz (tek seferlik soru).
 
 Program pencere açmaz; saatin yanındaki **sistem tepsisinde** çalışır.
 
@@ -52,7 +52,7 @@ Program pencere açmaz; saatin yanındaki **sistem tepsisinde** çalışır.
 
 ## Ayarlar
 
-`HeatSync-Stable.ini`:
+`HeatSync-ArrowFix.ini`:
 
 ```ini
 ; Okların sıcaklık ölçeği (varsayılan 0..100 °C, 8 kademe = 12,5 °C)
@@ -66,9 +66,9 @@ Okların daha belirgin hareket etmesi için ör. `ArrowMinC=30`, `ArrowMaxC=90` 
 
 | Komut | Ne yapar |
 |---|---|
-| `HeatSync-Stable.exe --debug` | Ayrıntılı kayıt: LCD'ye giden her paket `logs\lcd_*.log`'a yazılır |
-| `HeatSync-Stable.exe --lcd-test` | Okları 0→7 değerlerinde 5'er saniye gösterir |
-| `HeatSync-Stable.exe --setup` | Düzeltilmiş kopyayı kurulu orijinalden yeniden oluşturur |
+| `HeatSync-ArrowFix.exe --debug` | Ayrıntılı kayıt: LCD'ye giden her paket `logs\lcd_*.log`'a yazılır |
+| `HeatSync-ArrowFix.exe --lcd-test` | Okları 0→7 değerlerinde 5'er saniye gösterir |
+| `HeatSync-ArrowFix.exe --setup` | Düzeltilmiş kopyayı kurulu orijinalden yeniden oluşturur |
 
 ## Sık sorulanlar
 
@@ -76,7 +76,7 @@ Okların daha belirgin hareket etmesi için ör. `ArrowMinC=30`, `ArrowMaxC=90` 
 Hayır. Renkler LCD'nin kendi belleğindeki görüntülerde. Yazılım sadece kaç ok yanacağını gönderebiliyor (`--lcd-test` ile görebilirsiniz). Tutucunun gövdesindeki büyük ARGB ışığın rengi ise anakartınızın RGB yazılımından ayarlanır.
 
 **Orijinal program açıkken çalışır mı?**
-LCD'yi (COM portunu) iki program aynı anda kullanamaz. HeatSync-Stable bunu algılar ve diğerini kapatmayı sorar.
+LCD'yi (COM portunu) iki program aynı anda kullanamaz. HeatSync-ArrowFix bunu algılar ve diğerini kapatmayı sorar.
 
 **Başka bir sürümle çalışır mı?**
 Şimdilik yalnızca 2.2.1.0 (SHA-256 `994498FE…5E12`). Farklı sürüm algılanırsa hiçbir şey değiştirilmez. Lütfen bir [issue](../../issues) açın.
@@ -86,12 +86,12 @@ LCD'yi (COM portunu) iki program aynı anda kullanamaz. HeatSync-Stable bunu alg
 ```powershell
 # .NET SDK 6+ gerekir (net48 hedefleri referans paketleriyle derlenir)
 ./build.ps1 -Version 1.0.0
-# çıktı: artifacts/HeatSync-Stable-v1.0.0.zip
+# çıktı: artifacts/HeatSync-ArrowFix-v1.0.0.zip
 ```
 
 | Klasör | İçerik |
 |---|---|
-| `src/HeatSyncStable` | Başlatıcı + `CorePatcher` (dnlib ile kullanıcının kendi kopyasına IL yaması) |
+| `src/HeatSyncArrowFix` | Başlatıcı + `CorePatcher` (dnlib ile kullanıcının kendi kopyasına IL yaması) |
 | `src/HeatSyncFix` | Yamalı yazılımın çağırdığı yardımcı kod (ok kademesi, sensör koruması, protokol kaydı) |
 | `docs` | Tanıtım sayfası ve [teknik inceleme](docs/TEKNIK.md) |
 

@@ -1,4 +1,4 @@
-﻿// HeatSync-Stable.exe - launcher/host for a fixed copy of the GAMEPOWER HeatSync software.
+﻿// HeatSync-ArrowFix.exe - launcher/host for a fixed copy of the GAMEPOWER HeatSync software.
 //  * first run: copies the needed files from the user's own installed GAMEPOWER (read-only, never modified)
 //    into this folder and applies the IL fixes (CorePatcher) to the copy
 //  * runs the patched copy from THIS folder (own config\), never starts the original installation
@@ -18,17 +18,17 @@ using System.Threading;
 using System.Windows.Forms;
 using System.Xml;
 
-[assembly: AssemblyTitle("HeatSync-Stable")]
-[assembly: AssemblyProduct("HeatSync-Stable")]
+[assembly: AssemblyTitle("HeatSync-ArrowFix")]
+[assembly: AssemblyProduct("HeatSync-ArrowFix")]
 [assembly: AssemblyDescription("Fixed launcher for the GAMEPOWER HeatSync A-RGB LCD software")]
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
 
-namespace HeatSyncStable
+namespace HeatSyncArrowFix
 {
     static class Program
     {
-        const string Title = "HeatSync-Stable";
+        const string Title = "HeatSync-ArrowFix";
         const string TaskName = "UsbMonitor";
         // The patched core is stored as usb_hid.dll (its assembly name) so it cannot be double-clicked and run
         // as a second, unmanaged instance next to the launcher.
@@ -65,15 +65,15 @@ namespace HeatSyncStable
                 else if (args[i] == "--exit-after" && i + 1 < args.Length) int.TryParse(args[++i], out exitAfter);
                 else if (args[i] == "--lcd-test") { HeatSyncFix.Lcd.StartTest(5); debug = true; }
             }
-            Log("==== HeatSync-Stable " + Assembly.GetExecutingAssembly().GetName().Version + " start. folder=" + dir + " args=" + string.Join(" ", args));
+            Log("==== HeatSync-ArrowFix " + Assembly.GetExecutingAssembly().GetName().Version + " start. folder=" + dir + " args=" + string.Join(" ", args));
 
             bool created;
-            using (var mutex = new Mutex(true, "Global\\HeatSync-Stable-single-instance", out created))
+            using (var mutex = new Mutex(true, "Global\\HeatSync-ArrowFix-single-instance", out created))
             {
                 if (!created)
                 {
-                    Log("Another HeatSync-Stable instance is running -> exit");
-                    if (!auto) MessageBox.Show("HeatSync-Stable zaten çalışıyor (sistem tepsisinde).", Title, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    Log("Another HeatSync-ArrowFix instance is running -> exit");
+                    if (!auto) MessageBox.Show("HeatSync-ArrowFix zaten çalışıyor (sistem tepsisinde).", Title, MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return 1;
                 }
 
@@ -176,7 +176,7 @@ namespace HeatSyncStable
             }
             if (Path.GetFullPath(src).TrimEnd('\\').Equals(dir, StringComparison.OrdinalIgnoreCase))
             {
-                MessageBox.Show("HeatSync-Stable'ı kurulu GAMEPOWER klasörünün içine değil, ayrı bir klasöre çıkarın.", Title, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("HeatSync-ArrowFix'ı kurulu GAMEPOWER klasörünün içine değil, ayrı bir klasöre çıkarın.", Title, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
             string hash = Sha256(srcExe);
@@ -231,7 +231,7 @@ namespace HeatSyncStable
         static int ReadPatchVersion() { try { return int.Parse(File.ReadAllText(PatchMarker).Trim()); } catch { return 1; } }
         static void WritePatchVersion() { File.WriteAllText(PatchMarker, CorePatcher.PatchVersion.ToString()); }
 
-        // An existing copy made by an older HeatSync-Stable: re-patch silently from this folder's own verified backup.
+        // An existing copy made by an older HeatSync-ArrowFix: re-patch silently from this folder's own verified backup.
         static bool TryUpgradeFromBackup()
         {
             try
@@ -288,13 +288,13 @@ namespace HeatSyncStable
         static void Fatal(Exception ex)
         {
             Log("FATAL: " + ex);
-            MessageBox.Show("HeatSync-Stable başlatılamadı:\r\n\r\n" + ex.GetType().Name + ": " + ex.Message +
+            MessageBox.Show("HeatSync-ArrowFix başlatılamadı:\r\n\r\n" + ex.GetType().Name + ": " + ex.Message +
                             "\r\n\r\nAyrıntılı kayıt: " + logPath, Title, MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
         static bool inDialog; static DateTime lastDialog = DateTime.MinValue;
 
-        // A previously generated GAMEPOWER.exe in this folder (older HeatSync-Stable layout) is removed so it cannot be started directly.
+        // A previously generated GAMEPOWER.exe in this folder (older HeatSync-ArrowFix layout) is removed so it cannot be started directly.
         static void RemoveOldCoreExe()
         {
             string old = Path.Combine(dir, "GAMEPOWER.exe");
@@ -346,7 +346,7 @@ namespace HeatSyncStable
                 Log("Found running GAMEPOWER pid=" + p.Id + " path=" + path);
                 var r = auto ? DialogResult.Yes : MessageBox.Show(
                     "Başka bir GAMEPOWER programı çalışıyor:\r\n" + path + "\r\n\r\n" +
-                    "LCD'yi (COM portunu) iki program aynı anda kullanamaz. Bu program kapatılıp HeatSync-Stable başlatılsın mı?",
+                    "LCD'yi (COM portunu) iki program aynı anda kullanamaz. Bu program kapatılıp HeatSync-ArrowFix başlatılsın mı?",
                     Title, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                 if (r != DialogResult.Yes) { Log("User declined closing other instance -> exit"); return false; }
                 try { p.Kill(); p.WaitForExit(5000); Log("Closed pid=" + p.Id); Thread.Sleep(1500); }
@@ -374,10 +374,13 @@ namespace HeatSyncStable
                 var cmd = doc.SelectSingleNode("//t:Actions/t:Exec/t:Command", ns);
                 if (cmd == null) return;
                 var argsNode = doc.SelectSingleNode("//t:Actions/t:Exec/t:Arguments", ns);
-                string me = Path.Combine(dir, "HeatSync-Stable.exe");
+                string me = Assembly.GetExecutingAssembly().Location;
                 string current = cmd.InnerText.Trim('"');
                 if (current.Equals(me, StringComparison.OrdinalIgnoreCase)) return;
-                bool repairOwn = current.Equals(Path.Combine(dir, "GAMEPOWER.exe"), StringComparison.OrdinalIgnoreCase);
+                // silently repair targets that belong to this program: anything in this folder (old core exe) or the
+                // previous product name HeatSync-Stable.exe (the user already agreed to autostart this program)
+                bool repairOwn = string.Equals(Path.GetDirectoryName(current), dir, StringComparison.OrdinalIgnoreCase)
+                                 || Path.GetFileName(current).Equals("HeatSync-Stable.exe", StringComparison.OrdinalIgnoreCase);
                 if (repairOwn)
                 {
                     Log("Logon task points to this folder's old core exe -> repointing to " + me);
@@ -388,7 +391,7 @@ namespace HeatSyncStable
                 Log("Logon task '" + TaskName + "' currently starts: " + current + " " + (argsNode != null ? argsNode.InnerText : ""));
                 var r = MessageBox.Show(
                     "Windows açılışında şu an başka bir program başlatılıyor (Görev Zamanlayıcı: \"" + TaskName + "\"):\r\n" + current +
-                    "\r\n\r\nAçılışta bunun yerine HeatSync-Stable başlatılsın mı?\r\n(Orijinal kurulum dosyalarına dokunulmaz; yalnızca bu görevin hedefi değişir. Bu soru bir daha sorulmaz.)",
+                    "\r\n\r\nAçılışta bunun yerine HeatSync-ArrowFix başlatılsın mı?\r\n(Orijinal kurulum dosyalarına dokunulmaz; yalnızca bu görevin hedefi değişir. Bu soru bir daha sorulmaz.)",
                     Title, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                 File.WriteAllText(marker, DateTime.Now + " answer=" + r + " previousTarget=" + current + " " + (argsNode != null ? argsNode.InnerText : ""));
                 if (r != DialogResult.Yes) return;
@@ -407,7 +410,7 @@ namespace HeatSyncStable
                 var wd = doc.SelectSingleNode("//t:Actions/t:Exec/t:WorkingDirectory", ns);
                 if (wd == null) { wd = doc.CreateElement("WorkingDirectory", ns.LookupNamespace("t")); cmd.ParentNode.AppendChild(wd); }
                 wd.InnerText = dir;
-                string tmp = Path.Combine(Path.GetTempPath(), "HeatSync-Stable-task.xml");
+                string tmp = Path.Combine(Path.GetTempPath(), "HeatSync-ArrowFix-task.xml");
                 File.WriteAllText(tmp, doc.OuterXml, Encoding.Unicode);
                 RunSchtasks("/Create /TN \"" + TaskName + "\" /XML \"" + tmp + "\" /F");
                 File.Delete(tmp);

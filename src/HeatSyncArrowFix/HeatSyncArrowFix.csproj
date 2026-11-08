@@ -3,8 +3,8 @@
     <TargetFramework>net48</TargetFramework>
     <OutputType>WinExe</OutputType>
     <PlatformTarget>x64</PlatformTarget>
-    <AssemblyName>HeatSync-Stable</AssemblyName>
-    <RootNamespace>HeatSyncStable</RootNamespace>
+    <AssemblyName>HeatSync-ArrowFix</AssemblyName>
+    <RootNamespace>HeatSyncArrowFix</RootNamespace>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <LangVersion>latest</LangVersion>
     <ApplicationManifest>app.manifest</ApplicationManifest>

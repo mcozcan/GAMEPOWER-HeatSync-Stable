@@ -3,7 +3,7 @@
 ## Included in releases
 
 ### dnlib
-Used by HeatSync-Stable to apply the fixes to the user's local copy.
+Used by HeatSync-ArrowFix to apply the fixes to the user's local copy.
 https://github.com/0xd4d/dnlib — MIT License, Copyright (C) 2012-2019 de4dot@gmail.com
 
 ## NOT included (copied at runtime from the user's own installation)

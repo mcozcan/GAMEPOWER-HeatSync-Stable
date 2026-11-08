@@ -18,7 +18,7 @@ Bu üründe ekranı PC çizmiyor. Uygulama yaklaşık 0,65 sn'de bir **20 baytl�
 
 Paket, TURZX "rev A" komut biçiminde. İlk 6 bayt 4 adet 10 bitlik alan ve bir komut baytından oluşuyor, komut **169 (0xA9)**:
 
-| Konum | Orijinal yazılım | HeatSync-Stable |
+| Konum | Orijinal yazılım | HeatSync-ArrowFix |
 |---|---|---|
 | başlık alan 1 | `(byte)` CPU **yükü** | CPU sıcaklığı |
 | başlık alan 2 | `(byte)` GPU sıcaklığı | GPU sıcaklığı |
@@ -88,4 +88,4 @@ Ana form, yükleme sırasında `base.DesktopLocation = new Point(-500, -500)` il
 - Kod ILSpy ile C#'a geri çevrildi; şifreli string'ler (`s.b(str, key)`, XOR) bir araçla çözüldü.
 - Uygulama, yönetici olarak, içine istisna/Console kaydı eklenmiş bir ana süreçte çalıştırıldı.
 - Seri port yazma metoduna bir kanca eklenerek LCD'ye giden her bayt kaydedildi.
-- Yamalar [dnlib](https://github.com/0xd4d/dnlib) ile IL düzeyinde uygulanıyor (`src/HeatSyncStable/CorePatcher.cs`). Yamalı derlemedeki 963 metodun hepsi JIT ile derlenerek doğrulandı.
+- Yamalar [dnlib](https://github.com/0xd4d/dnlib) ile IL düzeyinde uygulanıyor (`src/HeatSyncArrowFix/CorePatcher.cs`). Yamalı derlemedeki 963 metodun hepsi JIT ile derlenerek doğrulandı.

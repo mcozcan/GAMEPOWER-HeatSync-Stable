@@ -1,4 +1,4 @@
-﻿// CorePatcher: applies the HeatSync-Stable IL fixes to the user's OWN installed GAMEPOWER.exe
+﻿// CorePatcher: applies the HeatSync-ArrowFix IL fixes to the user's OWN installed GAMEPOWER.exe
 // (GAMEPOWER HeatSync software 2.2.1.0, assembly "usb_hid", Dotfuscator-obfuscated) using dnlib.
 // Obfuscated member names are written as \uXXXX escapes.
 using System;
@@ -9,7 +9,7 @@ using dnlib.DotNet;
 using dnlib.DotNet.Emit;
 using dnlib.DotNet.Writer;
 
-namespace HeatSyncStable
+namespace HeatSyncArrowFix
 {
     public static class CorePatcher
     {
