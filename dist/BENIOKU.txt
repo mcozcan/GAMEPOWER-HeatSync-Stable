@@ -1,0 +1,33 @@
+﻿HeatSync-Stable - GAMEPOWER HeatSync A-RGB LCD VGA Holder icin duzeltme
+https://github.com/mcozcan/HeatSync-Stable
+
+GEREKLI
+  Ureticinin GAMEPOWER HeatSync yazilimi (surum 2.2.1.0) kurulu olmali.
+  Bu paket ureticinin dosyalarini icermez; ilk acilista sizin kurulu kopyanizdan alir.
+
+KURULUM
+  1) Bu klasoru kurulu GAMEPOWER klasorunun DISINDA bir yere koyun (or. Belgeler\HeatSync-Stable).
+  2) HeatSync-Stable.exe'ye cift tiklayin, yonetici iznini onaylayin.
+  3) Ilk acilista kurulu GAMEPOWER bulunur, surumu dogrulanir ve onayinizla duzeltilmis kopya
+     bu klasorde olusturulur. Orijinal kurulum DEGISTIRILMEZ.
+  4) Program pencere acmaz; sistem tepsisinde calisir.
+
+NE DUZELIR
+  - LCD'deki oklar surekli akmaz; sol ok CPU, sag ok GPU sicakligina gore durur.
+  - "Nesne basvurusu bir nesnenin ornegine ayarlanmadi" hatasi.
+  - Gizli pencereye Enter gidince cikan "Parametre gecerli degil" hatasi.
+  - HWiNFO/nvml.dll kaynakli ani kapanma.
+
+KOMUTLAR
+  HeatSync-Stable.exe --debug     ayrintili kayit (logs\)
+  HeatSync-Stable.exe --lcd-test  oklari 0->7 kademelerinde 5'er sn gosterir
+  HeatSync-Stable.exe --setup     duzeltilmis kopyayi yeniden olusturur
+
+AYAR
+  HeatSync-Stable.ini : ArrowMinC / ArrowMaxC / HysteresisC
+
+KALDIRMA
+  Klasoru silin. Acilis gorevini (Gorev Zamanlayici > UsbMonitor) yonlendirdiyseniz
+  eski hedef logs\autostart_asked.txt icinde yazar.
+
+Bu proje GAMEPOWER, TURZX veya REALiX (HWiNFO) ile baglantili degildir. Kullanim riski size aittir.

@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HeatSync-Stable</title>
+<meta name="description" content="GAMEPOWER HeatSync A-RGB LCD VGA Holder yazılımı için düzeltme: LCD okları gerçek CPU/GPU sıcaklığına göre durur, açılış hatası ve ani kapanma giderildi.">
+<link rel="icon" href="icon.png">
+<meta property="og:title" content="HeatSync-Stable">
+<meta property="og:description" content="GAMEPOWER HeatSync LCD okları artık durmadan akmıyor, gerçek sıcaklığa göre duruyor.">
+<meta property="og:image" content="icon.png">
+<style>
+  :root {
+    --bg: #f7f8fb; --surface: #ffffff; --surface-2: #eef1f7; --text: #0f172a; --muted: #5b6475;
+    --border: #dfe3ec; --accent: #2563eb; --accent-2: #dc2626; --ok: #16a34a; --lcd: #05070d;
+    --shadow: 0 1px 2px rgba(15,23,42,.06), 0 8px 24px rgba(15,23,42,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0b0f17; --surface: #121826; --surface-2: #182033; --text: #e7ebf3; --muted: #9aa4b8;
+            --border: #232c40; --accent: #4f8bff; --accent-2: #f05252; --ok: #22c55e; --shadow: none; }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  a { color: var(--accent); }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+  .hero > *, .grid > *, .demo > * { min-width: 0; }
+  code, kbd { overflow-wrap: anywhere; }
+  body { overflow-x: hidden; }
+
+  header.top { position: sticky; top: 0; z-index: 5; backdrop-filter: saturate(160%) blur(10px);
+               background: color-mix(in srgb, var(--bg) 82%, transparent); border-bottom: 1px solid var(--border); }
+  header.top .wrap { display: flex; align-items: center; gap: 12px; height: 60px; }
+  header.top img { width: 28px; height: 28px; }
+  header.top b { font-size: 17px; letter-spacing: -.01em; }
+  header.top nav { margin-left: auto; display: flex; gap: 18px; font-size: 14px; }
+  header.top nav a { color: var(--muted); text-decoration: none; }
+  header.top nav a:hover { color: var(--text); }
+
+  .hero { padding: 64px 0 40px; display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: center; }
+  .eyebrow { display: inline-block; font-size: 13px; font-weight: 600; color: var(--accent);
+             background: color-mix(in srgb, var(--accent) 12%, transparent); padding: 4px 10px; border-radius: 999px; }
+  h1 { font-size: clamp(32px, 5vw, 50px); line-height: 1.08; letter-spacing: -.025em; margin: 14px 0 14px; }
+  h1 .grad { background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .lead { font-size: 18px; color: var(--muted); max-width: 34em; margin: 0 0 26px; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 10px; font-weight: 600;
+         text-decoration: none; border: 1px solid var(--border); color: var(--text); background: var(--surface); }
+  .btn.primary { background: linear-gradient(135deg, var(--accent), #7c3aed 55%, var(--accent-2)); color: #fff; border: 0; box-shadow: var(--shadow); }
+  .btn:hover { filter: brightness(1.06); }
+  .btn svg { width: 18px; height: 18px; }
+  .small { font-size: 13px; color: var(--muted); }
+
+  /* LCD before/after demo */
+  .demo { display: grid; gap: 14px; }
+  .lcdcard { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px; box-shadow: var(--shadow); }
+  .lcdcard .lbl { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+  .lbl .bad { color: var(--accent-2); } .lbl .good { color: var(--ok); }
+  .lcd { background: var(--lcd); border-radius: 10px; padding: 14px 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .side { display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .val { font: 700 30px/1 ui-monospace, "Cascadia Mono", Consolas, monospace; color: #e8eef9; min-width: 2.2ch; text-align: center; }
+  .val small { font-size: 12px; color: #9fb0cc; display: block; font-weight: 600; letter-spacing: .08em; margin-top: 4px; }
+  .arrows { display: flex; flex-direction: column-reverse; gap: 2px; }
+  .arrows i { display: block; width: 12px; height: 5px; border-radius: 2px; background: #1b2436; }
+  .arrows i.on { background: #49d3e6; box-shadow: 0 0 6px #49d3e6aa; }
+  .note { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+
+  section { padding: 44px 0; }
+  h2 { font-size: 28px; letter-spacing: -.02em; margin: 0 0 8px; }
+  .sub { color: var(--muted); margin: 0 0 26px; }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; box-shadow: var(--shadow); }
+  .card h3 { margin: 0 0 6px; font-size: 17px; display: flex; gap: 10px; align-items: center; }
+  .card h3 .dot { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; flex: none;
+                  background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); font-size: 14px; }
+  .card p { margin: 6px 0 0; color: var(--muted); font-size: 15px; }
+  .card .why { font-size: 13.5px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); color: var(--muted); }
+  .card .why b { color: var(--text); font-weight: 600; }
+
+  ol.steps { counter-reset: s; list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+  ol.steps li { counter-increment: s; background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+                padding: 16px 16px 16px 60px; position: relative; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 16px; top: 14px; width: 30px; height: 30px; border-radius: 50%;
+                        display: grid; place-items: center; font-weight: 700; color: #fff;
+                        background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+  ol.steps b { display: block; }
+  ol.steps span { color: var(--muted); font-size: 15px; }
+  .callout { margin-top: 18px; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border);
+             background: var(--surface-2); font-size: 15px; }
+  code, kbd { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: .92em;
+              background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; }
+
+  details { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; margin-bottom: 10px; }
+  summary { cursor: pointer; font-weight: 600; }
+  details p { color: var(--muted); margin: 10px 0 2px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { background: var(--surface-2); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  .tablewrap { overflow-x: auto; }
+
+  footer { border-top: 1px solid var(--border); padding: 28px 0 40px; color: var(--muted); font-size: 13.5px; }
+
+  @media (max-width: 820px) {
+    .hero { grid-template-columns: 1fr; padding-top: 36px; }
+    .grid { grid-template-columns: 1fr; }
+    header.top nav { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <img src="icon.png" alt=""><b>HeatSync-Stable</b>
+    <nav>
+      <a href="#duzeltmeler">Düzeltmeler</a>
+      <a href="#kurulum">Kurulum</a>
+      <a href="#sss">SSS</a>
+      <a href="https://github.com/mcozcan/HeatSync-Stable">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="hero">
+    <div>
+      <span class="eyebrow">GAMEPOWER HeatSync A-RGB LCD VGA Holder</span>
+      <h1>Oklar artık <span class="grad">gerçek sıcaklığı</span> gösteriyor.</h1>
+      <p class="lead">Üreticinin yazılımında LCD okları sıcaklık sabitken bile durmadan akıyordu. HeatSync-Stable bunu ve açılıştaki “Nesne başvurusu…” hatasını düzeltir. Orijinal kuruluma dokunmaz.</p>
+      <div class="cta">
+        <a class="btn primary" href="https://github.com/mcozcan/HeatSync-Stable/releases/latest">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          İndir (Windows)
+        </a>
+        <a class="btn" href="https://github.com/mcozcan/HeatSync-Stable">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.71 1.26 3.37.96.1-.75.4-1.26.73-1.55-2.56-.29-5.25-1.28-5.25-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.7 5.38-5.27 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
+          Kaynak kod
+        </a>
+      </div>
+      <p class="small" style="margin-top:14px">Gereken: üreticinin GAMEPOWER HeatSync yazılımı <b>2.2.1.0</b> kurulu olmalı · Windows 10/11 · ücretsiz, açık kaynak</p>
+    </div>
+
+    <div class="demo" aria-label="LCD önce ve sonra canlandırması">
+      <div class="lcdcard">
+        <div class="lbl"><span>Orijinal yazılım</span><span class="bad">oklar durmadan akıyor</span></div>
+        <div class="lcd">
+          <div class="side"><div class="arrows" id="b1"></div><div class="val"><span id="bt1">47</span><small>CPU °C</small></div></div>
+          <div class="side"><div class="val"><span id="bt2">56</span><small>GPU °C</small></div><div class="arrows" id="b2"></div></div>
+        </div>
+        <div class="note">Ok değeri sıcaklıktan bağımsız: 0→7 arası sürekli dönen bir sayaç.</div>
+      </div>
+      <div class="lcdcard">
+        <div class="lbl"><span>HeatSync-Stable</span><span class="good">sıcaklığa göre sabit</span></div>
+        <div class="lcd">
+          <div class="side"><div class="arrows" id="a1"></div><div class="val"><span id="at1">47</span><small>CPU °C</small></div></div>
+          <div class="side"><div class="val"><span id="at2">56</span><small>GPU °C</small></div><div class="arrows" id="a2"></div></div>
+        </div>
+        <div class="note">Sol ok CPU, sağ ok GPU sıcaklığı. Yalnızca sıcaklık değişince hareket eder.</div>
+      </div>
+    </div>
+  </div>
+
+  <section id="duzeltmeler">
+    <h2>Neler düzeltildi?</h2>
+    <p class="sub">Her sorunun kaynağı, uygulama gerçek cihazla çalıştırılarak ve kodu incelenerek bulundu. Ayrıntılar <a href="https://github.com/mcozcan/HeatSync-Stable/blob/main/docs/TEKNIK.md">teknik incelemede</a>.</p>
+    <div class="grid">
+      <div class="card">
+        <h3><span class="dot">↕</span>Sürekli akan oklar</h3>
+        <p>Sol ok CPU, sağ ok GPU sıcaklığına göre bir kademede durur. Sıcaklık sabitken LCD'ye birebir aynı veri gider.</p>
+        <div class="why"><b>Sebep:</b> yazılım ok değerine 0→7 dönen bir sayaç, göstergenin bir kısmına da CPU <i>yükü</i> gönderiyordu.</div>
+      </div>
+      <div class="card">
+        <h3><span class="dot">!</span>“Nesne başvurusu…” hatası</h3>
+        <p>Açılışta çıkan “Uygulamanızda işlenmemiş özel durum oluştu” penceresi artık görünmez.</p>
+        <div class="why"><b>Sebep:</b> LCD'nin seri portu açılmadan ona yazılıyordu. Port hazır değilse artık “bağlı değil” olarak işlenip yeniden bağlanılıyor.</div>
+      </div>
+      <div class="card">
+        <h3><span class="dot">⏻</span>Ani kapanma</h3>
+        <p>Sensör okurken NVIDIA sürücüsünde oluşan erişim ihlali artık programı kapatmaz.</p>
+        <div class="why"><b>Sebep:</b> HWiNFO kütüphanesi <code>nvml.dll</code> içinde çöküyordu. Çağrı korunuyor; son değerler kalır, olay kaydedilir.</div>
+      </div>
+      <div class="card">
+        <h3><span class="dot">⌨</span>“Parametre geçerli değil”</h3>
+        <p>Gizli pencereye Enter/Boşluk gidince açılan hata penceresi kaldırıldı.</p>
+        <div class="why"><b>Sebep:</b> üreticinin unuttuğu gizli bir geliştirici butonu, olmayan <code>D:\ch554\…</code> dosyasını açmaya çalışıyordu.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="kurulum">
+    <h2>Kurulum</h2>
+    <p class="sub">Üreticinin dosyaları bu pakette yoktur; ilk açılışta sizin kurulu kopyanızdan alınır.</p>
+    <ol class="steps">
+      <li><b>İndirin</b><span><a href="https://github.com/mcozcan/HeatSync-Stable/releases/latest">Releases</a> sayfasından <code>HeatSync-Stable-vX.Y.Z.zip</code> dosyasını indirin.</span></li>
+      <li><b>Ayrı bir klasöre çıkarın</b><span>Ör. <code>Belgeler\HeatSync-Stable</code>. Kurulu GAMEPOWER klasörünün içine değil.</span></li>
+      <li><b>HeatSync-Stable.exe'yi açın</b><span>Yönetici iznini onaylayın. Orijinal yazılım da bunu ister, çünkü sensörler HWiNFO sürücüsüyle okunur.</span></li>
+      <li><b>Düzeltilmiş kopyayı oluşturun</b><span>Program kurulu GAMEPOWER'ı bulur, sürümünü SHA-256 ile doğrular ve onayınızla kendi klasöründe düzeltilmiş kopyayı oluşturur.</span></li>
+      <li><b>Hepsi bu</b><span>Program pencere açmaz, sistem tepsisinde çalışır. İsterseniz Windows açılışında orijinal yerine bu kopyanın başlamasını seçebilirsiniz.</span></li>
+    </ol>
+    <div class="callout">🔒 <b>Orijinal kurulum hiç değiştirilmez</b>, cihazın firmware'ine veya belleğine bir şey yazılmaz. Kaldırmak için klasörü silmeniz yeterli.</div>
+  </section>
+
+  <section>
+    <h2>Seçenekler</h2>
+    <p class="sub"><code>HeatSync-Stable.ini</code> dosyası ve komut satırı seçenekleri.</p>
+    <div class="tablewrap">
+      <table>
+        <tr><th>Ayar / komut</th><th>Ne yapar</th></tr>
+        <tr><td><code>ArrowMinC</code> / <code>ArrowMaxC</code></td><td>Okların sıcaklık ölçeği. Varsayılan 0–100 °C, 8 kademe. Daha belirgin hareket için ör. 30–90.</td></tr>
+        <tr><td><code>HysteresisC</code></td><td>Kademe sınırında titremeyi önleyen pay (varsayılan 1 °C).</td></tr>
+        <tr><td><code>--debug</code></td><td>Ayrıntılı kayıt; LCD'ye giden her paket <code>logs\</code> klasörüne yazılır.</td></tr>
+        <tr><td><code>--lcd-test</code></td><td>Okları 0→7 kademelerinde 5'er saniye gösterir.</td></tr>
+        <tr><td><code>--setup</code></td><td>Düzeltilmiş kopyayı kurulu orijinalden yeniden oluşturur.</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section id="sss">
+    <h2>Sık sorulanlar</h2>
+    <details><summary>Okların rengini değiştirebilir miyim?</summary>
+      <p>Hayır. Renkler LCD'nin kendi belleğindeki görüntülerde; yazılım yalnızca kaç okun yanacağını gönderebiliyor. Tutucunun gövdesindeki büyük ARGB ışığın rengi ise anakartınızın RGB yazılımından ayarlanır.</p></details>
+    <details><summary>Orijinal program açıkken çalışır mı?</summary>
+      <p>LCD'yi iki program aynı anda kullanamaz. HeatSync-Stable bunu algılar ve diğerini kapatmayı sorar.</p></details>
+    <details><summary>Başka bir yazılım sürümüyle çalışır mı?</summary>
+      <p>Şimdilik yalnızca 2.2.1.0 destekleniyor. Farklı bir sürüm algılanırsa hiçbir şey değiştirilmez. <a href="https://github.com/mcozcan/HeatSync-Stable/issues">Issue açarak</a> bildirebilirsiniz.</p></details>
+    <details><summary>Neden yönetici izni istiyor?</summary>
+      <p>Orijinal yazılımla aynı sebepten: CPU/GPU sensörleri HWiNFO sürücüsü üzerinden okunuyor ve bu, Windows'ta yönetici izni gerektiriyor.</p></details>
+    <details><summary>Bir sorun olursa ne yapmalıyım?</summary>
+      <p><code>HeatSync-Stable.exe --debug</code> ile çalıştırın ve <code>logs\</code> klasöründeki kaydı bir issue'ya ekleyin. Kayıtta bilgisayarınızın donanım bilgileri bulunur; paylaşmadan önce göz atın.</p></details>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    Bu proje GAMEPOWER, TURZX veya REALiX (HWiNFO) ile bağlantılı değildir; üreticilere ait hiçbir dosya dağıtılmaz.
+    Yazılım “olduğu gibi” sunulur, kullanım riski size aittir. Kod <a href="https://github.com/mcozcan/HeatSync-Stable/blob/main/LICENSE">MIT</a> lisanslıdır.
+  </div>
+</footer>
+
+<script>
+  // Before/after illustration: original sends a free-running counter, fixed version a temperature level.
+  (function () {
+    const N = 7;                       // arrow segments drawn per side
+    function build(id) { const el = document.getElementById(id); for (let i = 0; i < N; i++) el.appendChild(document.createElement('i')); return el; }
+    function show(el, lit) { [...el.children].forEach((c, i) => c.classList.toggle('on', i < lit)); }
+    const b1 = build('b1'), b2 = build('b2'), a1 = build('a1'), a2 = build('a2');
+    const level = t => Math.max(0, Math.min(7, Math.floor(t / 12.5)));
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let counter = 0, cpu = 47, gpu = 56, tick = 0;
+    function step() {
+      tick++;
+      if (tick % 6 === 0) cpu = Math.max(40, Math.min(70, cpu + (Math.random() < .5 ? -1 : 1)));
+      if (tick % 9 === 0) gpu = Math.max(50, Math.min(66, gpu + (Math.random() < .5 ? -1 : 1)));
+      ['bt1','at1'].forEach(id => document.getElementById(id).textContent = cpu);
+      ['bt2','at2'].forEach(id => document.getElementById(id).textContent = gpu);
+      counter = (counter + 1) % 8;
+      show(b1, counter); show(b2, counter);
+      show(a1, level(cpu)); show(a2, level(gpu));
+    }
+    step();
+    if (!reduce) setInterval(step, 650);
+  })();
+</script>
+</body>
+</html>
