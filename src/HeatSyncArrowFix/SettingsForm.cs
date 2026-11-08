@@ -1,4 +1,4 @@
-// Settings window: arrow source (temperature / usage), minimum one arrow, GPU selection, live values.
+﻿// Settings window: arrow source (temperature / usage), minimum one arrow, GPU selection, live values.
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -15,10 +15,12 @@ namespace HeatSyncArrowFix
             public Func<List<string>> GetGpus;
             public Func<string> GetSelectedGpu;
             public Action<string> ApplyGpu;   // saves and restarts
+            public Func<bool> GetAutostart;
+            public Func<bool, string> SetAutostart;   // returns error text or null
         }
 
         readonly RadioButton rbTemp, rbLoad;
-        readonly CheckBox cbMin;
+        readonly CheckBox cbMin, cbAuto;
         readonly ComboBox cbGpu;
         readonly Button btnGpu;
         readonly Label lblCpu, lblGpu, lblGpuNote;
@@ -37,7 +39,7 @@ namespace HeatSyncArrowFix
             ShowInTaskbar = true;
             AutoScaleMode = AutoScaleMode.Dpi;
             Font = new Font("Segoe UI", 10f);
-            ClientSize = new Size(460, 470);
+            ClientSize = new Size(460, 560);
 
             int y = 14;
             var title = new Label { Text = "LCD okları neye göre hareket etsin?", Font = new Font("Segoe UI Semibold", 12f), AutoSize = true, Location = new Point(18, y) };
@@ -49,7 +51,9 @@ namespace HeatSyncArrowFix
             var dLoad = new Label { Text = "İşlemci / ekran kartı yükü. Son ~3 sn'nin ortalaması kullanılır.", ForeColor = SystemColors.GrayText, AutoSize = true, Location = new Point(44, y + 24) };
             y += 56;
             cbMin = new CheckBox { Text = "En az 1 ok her zaman yansın", AutoSize = true, Location = new Point(24, y) };
-            y += 38;
+            y += 30;
+            cbAuto = new CheckBox { Text = "Windows açılışında otomatik başlat", AutoSize = true, Location = new Point(24, y) };
+            y += 40;
 
             var gpuTitle = new Label { Text = "Ekran kartı (GPU)", Font = new Font("Segoe UI Semibold", 11f), AutoSize = true, Location = new Point(18, y) };
             y += 30;
@@ -64,16 +68,27 @@ namespace HeatSyncArrowFix
             box.Controls.Add(lblCpu); box.Controls.Add(lblGpu);
             y += 102;
 
-            var hint = new Label { Text = "Seçimler anında uygulanır ve kaydedilir.\nBu pencere için HeatSync-ArrowFix.exe'ye tekrar çift tıklayın.", ForeColor = SystemColors.GrayText, AutoSize = true, Location = new Point(18, y) };
-            var ok = new Button { Text = "Kapat", Size = new Size(96, 32), Location = new Point(346, y + 2), DialogResult = DialogResult.OK };
+            var hint = new Label { Text = "Seçimler anında uygulanır ve kaydedilir; bilgisayar yeniden başlasa da hatırlanır. Bu pencere için HeatSync-ArrowFix.exe'ye tekrar çift tıklayın.", ForeColor = SystemColors.GrayText, AutoSize = true, MaximumSize = new Size(424, 0), Location = new Point(18, y) };
+            var ok = new Button { Text = "Kapat", Size = new Size(110, 34), Anchor = AnchorStyles.Bottom | AnchorStyles.Right, DialogResult = DialogResult.OK };
+            ok.Location = new Point(ClientSize.Width - ok.Width - 18, ClientSize.Height - ok.Height - 14);
             CancelButton = ok;
 
-            Controls.AddRange(new Control[] { title, rbTemp, dTemp, rbLoad, dLoad, cbMin, gpuTitle, cbGpu, btnGpu, lblGpuNote, box, hint, ok });
+            Controls.AddRange(new Control[] { title, rbTemp, dTemp, rbLoad, dLoad, cbMin, cbAuto, gpuTitle, cbGpu, btnGpu, lblGpuNote, box, hint, ok });
 
             SyncChoice();
             rbTemp.CheckedChanged += (s, e) => { if (!loading && rbTemp.Checked) br.SetSource(false); };
             rbLoad.CheckedChanged += (s, e) => { if (!loading && rbLoad.Checked) br.SetSource(true); };
             cbMin.CheckedChanged += (s, e) => { if (!loading) br.SetMinLevel(cbMin.Checked ? 1 : 0); };
+            cbAuto.CheckedChanged += (s, e) =>
+            {
+                if (loading) return;
+                string err = br.SetAutostart(cbAuto.Checked);
+                if (err != null)
+                {
+                    MessageBox.Show(this, "Otomatik başlatma ayarlanamadı:\n" + err, Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    loading = true; try { cbAuto.Checked = br.GetAutostart(); } catch { cbAuto.Checked = false; } loading = false;
+                }
+            };
 
             LoadGpus();
             cbGpu.SelectedIndexChanged += (s, e) => btnGpu.Enabled = cbGpu.SelectedItem != null && (string)cbGpu.SelectedItem != SafeSelected();
@@ -116,6 +131,7 @@ namespace HeatSyncArrowFix
             loading = true;
             rbTemp.Checked = !HeatSyncFix.Lcd.UseLoad; rbLoad.Checked = HeatSyncFix.Lcd.UseLoad;
             cbMin.Checked = HeatSyncFix.Lcd.MinLevel >= 1;
+            try { cbAuto.Checked = br.GetAutostart(); } catch { cbAuto.Checked = false; }
             loading = false;
         }
 

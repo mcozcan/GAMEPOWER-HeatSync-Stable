@@ -79,6 +79,7 @@ Orijinal yazılımın açılış görevi (`UsbMonitor`) duruyorsa onu **Devre d�
   - **Sıcaklığa göre (CPU / GPU °C)**: varsayılan. 0–100 °C ölçeği; oklar yalnızca sıcaklık değişince hareket eder.
   - **Kullanım yüzdesine göre (CPU / GPU %)**: işlemci/ekran kartı yükü. Son ~3 saniyenin ortalaması kullanılır; oklar her saniye zıplamaz.
 - **En az 1 ok her zaman yansın**: varsayılan olarak açık.
+- **Windows açılışında otomatik başlat**: işaretlerseniz `HeatSync-ArrowFix` adlı bir oturum açılışı görevi oluşturulur (oturum açıldıktan 15 sn sonra başlar); işareti kaldırınca silinir. Üreticinin `UsbMonitor` görevine dokunulmaz.
 - **Ekran kartı (GPU)**: İşlemcide dahili grafik varsa (ör. AMD Radeon) ve ayrıca harici kart takılıysa (ör. NVIDIA), LCD'nin sağ tarafında hangisinin gösterileceğini seçin. **Uygula** dediğinizde program birkaç saniyede kendini yeniden başlatır.
 - **Şu an LCD'ye giden**: CPU/GPU sıcaklığı, kullanımı ve yanan ok sayısı canlı görünür.
 

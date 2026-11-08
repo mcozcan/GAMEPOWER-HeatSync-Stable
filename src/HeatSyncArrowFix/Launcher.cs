@@ -44,6 +44,8 @@ namespace HeatSyncArrowFix
         static readonly object lk = new object();
         static Assembly core;
 
+        public static void LogPublic(string s) { Log(s); }
+
         static void Log(string s)
         {
             lock (lk)
@@ -375,7 +377,9 @@ namespace HeatSyncArrowFix
                         SetMinLevel = lv => { HeatSyncFix.Lcd.SetMinLevel(lv); SaveIniValue("MinLevel", lv.ToString()); },
                         GetGpus = GetGpuList,
                         GetSelectedGpu = GetSelectedGpu,
-                        ApplyGpu = ApplyGpuAndRestart
+                        ApplyGpu = ApplyGpuAndRestart,
+                        GetAutostart = Autostart.IsEnabled,
+                        SetAutostart = Autostart.Set
                     });
                     settings.Show();
                 }
