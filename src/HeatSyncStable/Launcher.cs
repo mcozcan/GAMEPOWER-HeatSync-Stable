@@ -77,11 +77,11 @@ namespace HeatSyncStable
                     return 1;
                 }
 
-                // 1) patched copy present? otherwise build it from the installed original
-                if (!EnsureCore(setup, auto)) return 2;
-
-                // 2) the original must not run at the same time (it would hold the LCD COM port)
+                // 1) no other GAMEPOWER may run: it would hold the LCD COM port (and lock files during setup)
                 if (!HandleOtherInstances(auto)) return 3;
+
+                // 2) patched copy present? otherwise build it from the installed original
+                if (!EnsureCore(setup, auto)) return 2;
 
                 // 3) optional: point the logon task to this copy (asked once)
                 if (!auto) OfferAutostart();
@@ -228,6 +228,7 @@ namespace HeatSyncStable
 
         static void CopyNormal(string from, string to)
         {
+            if (File.Exists(to) && new FileInfo(to).Length == new FileInfo(from).Length && Sha256(to) == Sha256(from)) return;   // already identical
             if (File.Exists(to)) File.SetAttributes(to, FileAttributes.Normal);
             File.Copy(from, to, true);
             File.SetAttributes(to, FileAttributes.Normal);
