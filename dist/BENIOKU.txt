@@ -1,5 +1,5 @@
 ﻿HeatSync-ArrowFix - GAMEPOWER HeatSync A-RGB LCD VGA Holder icin duzeltme
-https://github.com/mcozcan/HeatSync-ArrowFix
+https://github.com/mcozcan/Gamepower-HeatSync-ArrowFix
 
 GEREKLI
   Ureticinin GAMEPOWER HeatSync yazilimi (surum 2.2.1.0) kurulu olmali.
@@ -29,7 +29,7 @@ WINDOWS ACILISINDA BASLATMA (istege bagli, bir kez elle)
 
 WINDOWS DEFENDER
   Imzasiz yeni programlar bazen "Trojan:Win32/Wacatac.B!ml" olarak isaretlenir. "!ml" bir virus
-  imzasi degil, otomatik suphe tahminidir. Kaynak kod: https://github.com/mcozcan/HeatSync-ArrowFix
+  imzasi degil, otomatik suphe tahminidir. Kaynak kod: https://github.com/mcozcan/Gamepower-HeatSync-ArrowFix
   Yanlis alarm bildirimi: https://www.microsoft.com/wdsi/filesubmission
 
 KOMUTLAR

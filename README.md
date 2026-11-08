@@ -10,13 +10,13 @@
 </p>
 
 <p align="center">
-  <a href="../../releases/latest"><img alt="İndir" src="https://img.shields.io/github/v/release/mcozcan/HeatSync-ArrowFix?label=%C4%B0ndir&style=for-the-badge&color=2563eb"></a>
+  <a href="../../releases/latest"><img alt="İndir" src="https://img.shields.io/github/v/release/mcozcan/Gamepower-HeatSync-ArrowFix?label=%C4%B0ndir&style=for-the-badge&color=2563eb"></a>
   <img alt="Windows 10/11" src="https://img.shields.io/badge/Windows-10%20%2F%2011-0078D6?style=for-the-badge&logo=windows">
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/Lisans-MIT-16a34a?style=for-the-badge"></a>
 </p>
 
 <p align="center">
-  <a href="https://mcozcan.github.io/HeatSync-ArrowFix/">Tanıtım sayfası</a> ·
+  <a href="https://mcozcan.github.io/Gamepower-HeatSync-ArrowFix/">Tanıtım sayfası</a> ·
   <a href="docs/TEKNIK.md">Teknik inceleme</a> ·
   <a href="../../issues">Sorun bildir</a>
 </p>

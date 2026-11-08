@@ -20,7 +20,7 @@ using System.Windows.Forms;
 
 [assembly: AssemblyTitle("HeatSync-ArrowFix - LCD arrow fix for GAMEPOWER HeatSync")]
 [assembly: AssemblyProduct("HeatSync-ArrowFix")]
-[assembly: AssemblyDescription("Open-source launcher: runs a locally patched copy of the GAMEPOWER HeatSync LCD software. https://github.com/mcozcan/HeatSync-ArrowFix")]
+[assembly: AssemblyDescription("Open-source launcher: runs a locally patched copy of the GAMEPOWER HeatSync LCD software. https://github.com/mcozcan/Gamepower-HeatSync-ArrowFix")]
 [assembly: AssemblyCompany("Mehmet Can Özcan (open source, MIT)")]
 [assembly: AssemblyCopyright("Copyright (c) 2026 Mehmet Can Özcan - MIT License")]
 [assembly: AssemblyVersion("1.0.1.0")]
